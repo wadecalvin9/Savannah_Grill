@@ -74,7 +74,7 @@
     }
 
     .tab-icon {
-        @apply flex min-w-20 items-center justify-center min-h-full gap-1 mt-12;
+        @apply flex flex-col items-center justify-center min-w-20 gap-1;
     }
 
     .offer-card {
@@ -102,7 +102,7 @@
     }
 
     .base-bold {
-        @apply text-lg font-quicksand-bold !important;
+        @apply text-lg font-quicksand-bold;
     }
 
     .base-semibold {

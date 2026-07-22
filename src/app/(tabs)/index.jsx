@@ -12,6 +12,7 @@ export default function Index() {
       <FlatList
         data={offers}
         keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item, index }) => {
           const isEven = index % 2 == 0;
 

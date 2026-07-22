@@ -2,11 +2,13 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+import GlobalProvider, { useGlobalContext } from "../context/GlobalProvider";
 import "./globals.css";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function RootLayoutInner() {
   const [fontsLoaded, error] = useFonts({
     "QuickSand-Bold": require("../../assets/fonts/Quicksand-Bold.ttf"),
     "QuickSand-Medium": require("../../assets/fonts/Quicksand-Medium.ttf"),
@@ -24,4 +26,12 @@ export default function RootLayout() {
   if (!fontsLoaded && !error) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
+}
+
+export default function RootLayout() {
+  return (
+    <GlobalProvider>
+      <RootLayoutInner />
+    </GlobalProvider>
+  );
 }
