@@ -39,8 +39,7 @@ export default function _layout() {
         return <Redirect href="/sign-in" />;
     }
 
-    // Safety-net: redirect riders to their own layout
-    // Only fires after loading is complete to avoid redirecting before role is known
+
     if (!isLoading && isLoggedIn && userRole === 'rider') {
         return <Redirect href="/(rider)/dashboard" />;
     }

@@ -2,12 +2,11 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
-    Alert,
     Image,
     ScrollView,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
@@ -258,7 +257,6 @@ export default function MenuDetail() {
                                 KES {(item.price ?? 0).toLocaleString()}
                             </Text>
 
-                            {/* Calories / Protein stats */}
                             <View style={{ flexDirection: 'row', gap: 20, marginTop: 12 }}>
                                 {item.calories != null && (
                                     <View>
@@ -275,7 +273,6 @@ export default function MenuDetail() {
                             </View>
                         </View>
 
-                        {/* Right column: Large food image */}
                         <Image
                             source={{ uri: item.image_url }}
                             style={{ width: 170, height: 170, marginTop: -10 }}
@@ -284,7 +281,7 @@ export default function MenuDetail() {
                     </View>
                 </View>
 
-                {/* ── DELIVERY INFO PILLS ── */}
+
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -314,7 +311,6 @@ export default function MenuDetail() {
                     </View>
                 </View>
 
-                {/* ── DESCRIPTION ── */}
                 <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
                     <SectionTitle title="About this dish" />
                     <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Regular', color: '#6B7280', lineHeight: 22 }}>
@@ -322,7 +318,6 @@ export default function MenuDetail() {
                     </Text>
                 </View>
 
-                {/* ── YOU MIGHT ALSO LIKE ── */}
                 {recommendations.length > 0 && (
                     <View style={{ marginBottom: 20 }}>
                         <View style={{ paddingHorizontal: 20 }}>
@@ -342,7 +337,6 @@ export default function MenuDetail() {
 
             </ScrollView>
 
-            {/* ── STICKY BOTTOM ACTION BAR ── */}
             <View style={{
                 position: 'absolute',
                 bottom: 0, left: 0, right: 0,

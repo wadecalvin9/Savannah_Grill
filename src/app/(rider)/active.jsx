@@ -1,5 +1,5 @@
-import { router } from 'expo-router'
 import * as Location from 'expo-location'
+import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -11,9 +11,9 @@ import {
     View,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import RiderMapView from '../../../components/RiderMapView'
 import { images } from '../../../constants'
 import { updateOrderRiderLocation } from '../../../lib/appwrite'
-import RiderMapView from '../../../components/RiderMapView'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
 export default function ActiveDelivery() {
@@ -35,8 +35,8 @@ export default function ActiveDelivery() {
                 subscription = await Location.watchPositionAsync(
                     {
                         accuracy: Location.Accuracy.High,
-                        distanceInterval: 10, // every 10 meters
-                        timeInterval: 10000,  // every 10 seconds
+                        distanceInterval: 10,
+                        timeInterval: 10000,
                     },
                     (loc) => {
                         const { latitude, longitude } = loc.coords
@@ -202,7 +202,7 @@ export default function ActiveDelivery() {
                     </View>
                 </View>
 
-                {/* Confirm Delivery Button */}
+
                 <TouchableOpacity
                     onPress={handleComplete}
                     disabled={completing}

@@ -61,7 +61,7 @@ const GlobalProvider = ({ children }) => {
         fetchUser();
     }, []);
 
-    // ── Data fetchers ─────────────────────────────────────
+
     const fetchOrders = async () => {
         try {
             const dbOrders = await getOrders();
@@ -77,7 +77,6 @@ const GlobalProvider = ({ children }) => {
             const result = await getMyOrders(user.$id);
             setMyOrders(result || []);
         } catch (error) {
-            // customer_id attribute may not exist yet — fail silently
             console.warn('fetchMyOrders skipped:', error?.message);
         }
     };
@@ -91,25 +90,25 @@ const GlobalProvider = ({ children }) => {
             console.warn('fetchRiderData (ready orders) error:', error?.message);
         }
 
-        // Rider history / active — requires rider_id attribute in Appwrite
+
         try {
             const history = await getRiderDeliveries(user.$id);
             setRiderHistory(history || []);
             const active = (history || []).find(o => o.status === 'Out for Delivery');
             setActiveDelivery(active || null);
         } catch (error) {
-            // rider_id attribute may not exist yet in Appwrite schema — fail silently
+
             console.warn('fetchRiderData (history) skipped — add rider_id attribute to orders collection:', error?.message);
         }
     };
 
-    // ── Initial load + polling (replaces Realtime to avoid SDK bug) ──
+
     useEffect(() => {
         if (!user) return;
 
         const role = user.role || 'customer';
 
-        // Initial fetch
+
         if (role === 'admin') {
             fetchOrders();
         } else if (role === 'rider') {
@@ -119,7 +118,7 @@ const GlobalProvider = ({ children }) => {
             fetchMyOrders();
         }
 
-        // Start polling
+
         pollRef.current = setInterval(() => {
             if (role === 'admin') {
                 fetchOrders();
@@ -139,7 +138,7 @@ const GlobalProvider = ({ children }) => {
         };
     }, [user]);
 
-    // ── Cart ──────────────────────────────────────────────
+
     const addToCart = (item, quantity = 1) => {
         setCartItems((prev) => {
             const existingIndex = prev.findIndex((ci) => ci.item.$id === item.$id);
@@ -180,7 +179,7 @@ const GlobalProvider = ({ children }) => {
         0
     );
 
-    // ── Place Order ───────────────────────────────────────
+
     const placeOrder = async ({ note, address }) => {
         if (cartItems.length === 0) return null;
         const items = cartItems.map(ci => ({
@@ -226,7 +225,7 @@ const GlobalProvider = ({ children }) => {
         }
     };
 
-    // ── Update Order Status ───────────────────────────────
+
     const updateOrderStatus = async (orderId, newStatus) => {
         const update = (o) =>
             o.id === orderId || o.$id === orderId ? { ...o, status: newStatus } : o;
@@ -239,7 +238,7 @@ const GlobalProvider = ({ children }) => {
         }
     };
 
-    // ── Rider: Accept a delivery ──────────────────────────
+
     const acceptRiderDelivery = async (order) => {
         if (!user) return;
         try {
@@ -259,7 +258,7 @@ const GlobalProvider = ({ children }) => {
         }
     };
 
-    // ── Rider: Complete a delivery ────────────────────────
+
     const completeRiderDelivery = async (orderId) => {
         try {
             await updateOrderStatusDB(orderId, 'Completed');

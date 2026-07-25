@@ -65,7 +65,7 @@ export default function Search() {
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
-            {/* ✅ Search bar lives OUTSIDE the FlatList — keyboard never dismisses */}
+
             <View className="px-4 pt-4 pb-2 bg-gray-50">
                 <Text className="h3-bold text-dark-100 mb-3">Search Menu</Text>
 
@@ -98,15 +98,6 @@ export default function Search() {
                             {query ? `Results for "${query}"` : 'All Items'}
                         </Text>
                     )}
-                    <TouchableOpacity
-                        onPress={handleSeed}
-                        disabled={isSeeding}
-                        className="bg-dark-100 rounded-full py-1.5 px-4 ml-auto"
-                    >
-                        <Text className="small-bold text-white">
-                            {isSeeding ? 'Seeding…' : '🌱 Seed DB'}
-                        </Text>
-                    </TouchableOpacity>
                 </View>
             </View>
 

@@ -65,10 +65,10 @@ async function uploadImageToStorage(imageUrl: string) {
 async function seed(): Promise<void> {
     console.log("🌱 Starting seed...");
     // 1. Clear all
-    try { await clearAll(appwriteConfig.categoriesCollectionId); } catch (_) {}
-    try { await clearAll(appwriteConfig.customizationsCollectionId); } catch (_) {}
-    try { await clearAll(appwriteConfig.menuCollectionId); } catch (_) {}
-    try { await clearAll(appwriteConfig.menuCustomizationsCollectionId); } catch (_) {}
+    try { await clearAll(appwriteConfig.categoriesCollectionId); } catch (_) { }
+    try { await clearAll(appwriteConfig.customizationsCollectionId); } catch (_) { }
+    try { await clearAll(appwriteConfig.menuCollectionId); } catch (_) { }
+    try { await clearAll(appwriteConfig.menuCustomizationsCollectionId); } catch (_) { }
 
     // 2. Create Categories
     const categoryMap: Record<string, string> = {};
@@ -119,7 +119,7 @@ async function seed(): Promise<void> {
 
         menuMap[item.name] = doc.$id;
 
-        // 5. Create menu_customizations junction records
+
         for (const cusName of item.customizations) {
             const cusId = customizationMap[cusName];
             if (!cusId) continue;
@@ -130,7 +130,7 @@ async function seed(): Promise<void> {
                     ID.unique(),
                     {
                         menu: doc.$id,
-                        customizations: cusId,   // ✅ confirmed column name
+                        customizations: cusId,
                     }
                 );
             } catch (e: any) {
@@ -139,7 +139,7 @@ async function seed(): Promise<void> {
         }
     }
 
-    console.log("✅ Seeding complete!");
+    console.log("Seeding complete!");
 }
 
 export default seed;
