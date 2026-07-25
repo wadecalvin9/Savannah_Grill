@@ -50,7 +50,7 @@ export default function ManageOrders() {
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
                         style={{
                             width: 36,
                             height: 36,
@@ -171,18 +171,27 @@ export default function ManageOrders() {
 
                                 {/* Delivery Address & Note */}
                                 <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 10, marginBottom: 12 }}>
-                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
-                                        📍 Deliver to: {order.address}
-                                    </Text>
-                                    {order.note ? (
-                                        <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Medium', color: '#6B7280', marginTop: 4 }}>
-                                            💬 Note: "{order.note}"
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                        <Image source={images.location} style={{ width: 11, height: 11 }} resizeMode="contain" tintColor="#6B7280" />
+                                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', flex: 1 }}>
+                                            {order.address}
                                         </Text>
+                                    </View>
+                                    {order.note ? (
+                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
+                                            <Image source={images.pencil} style={{ width: 10, height: 10, marginTop: 2 }} resizeMode="contain" tintColor="#9CA3AF" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Medium', color: '#6B7280', flex: 1 }}>
+                                                {order.note}
+                                            </Text>
+                                        </View>
                                     ) : null}
                                     {order.rider_name ? (
-                                        <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#8B5CF6', marginTop: 4 }}>
-                                            🛵 Rider: {order.rider_name}
-                                        </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                            <Image source={images.person} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#FE8C00" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>
+                                                Rider: {order.rider_name}
+                                            </Text>
+                                        </View>
                                     ) : null}
                                 </View>
 
@@ -216,45 +225,50 @@ export default function ManageOrders() {
                                     {order.status !== 'Preparing' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Preparing')}
-                                            style={{ backgroundColor: '#FFF7ED', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FFEDD5' }}
+                                            style={{ backgroundColor: '#FFF7ED', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FFEDD5', flexDirection: 'row', alignItems: 'center', gap: 6 }}
                                         >
-                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>➡️ Mark Preparing</Text>
+                                            <Image source={images.pencil} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#F97316" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>Preparing</Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {order.status !== 'Ready' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Ready')}
-                                            style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#A7F3D0' }}
+                                            style={{ backgroundColor: '#ECFDF5', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#A7F3D0', flexDirection: 'row', alignItems: 'center', gap: 6 }}
                                         >
-                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#10B981' }}>➡️ Mark Ready</Text>
+                                            <Image source={images.check} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#10B981" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#10B981' }}>Ready</Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {order.status !== 'Out for Delivery' && order.status !== 'Completed' && order.status !== 'Cancelled' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Out for Delivery')}
-                                            style={{ backgroundColor: '#F5F3FF', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#DDD6FE' }}
+                                            style={{ backgroundColor: '#FFF7ED', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FED7AA', flexDirection: 'row', alignItems: 'center', gap: 6 }}
                                         >
-                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>🛵 Out for Delivery</Text>
+                                            <Image source={images.location} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#F97316" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>Out for Delivery</Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {order.status !== 'Completed' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Completed')}
-                                            style={{ backgroundColor: '#F0FDF4', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#BBF7D0' }}
+                                            style={{ backgroundColor: '#F0FDF4', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#BBF7D0', flexDirection: 'row', alignItems: 'center', gap: 6 }}
                                         >
-                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#16A34A' }}>✓ Complete Order</Text>
+                                            <Image source={images.check} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#16A34A" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#16A34A' }}>Complete</Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {order.status !== 'Cancelled' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Cancelled')}
-                                            style={{ backgroundColor: '#FEF2F2', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FCA5A5' }}
+                                            style={{ backgroundColor: '#FEF2F2', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FCA5A5', flexDirection: 'row', alignItems: 'center', gap: 6 }}
                                         >
-                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>✕ Cancel</Text>
+                                            <Image source={images.trash} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#EF4444" />
+                                            <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>Cancel</Text>
                                         </TouchableOpacity>
                                     )}
                                 </ScrollView>

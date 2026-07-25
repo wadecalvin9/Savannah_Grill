@@ -7,7 +7,7 @@ import { useGlobalContext } from '../../context/GlobalProvider'
 const TabBarIcon = ({ focused, title, icon, badge }) => (
     <View className="flex flex-col items-center justify-center h-full w-full">
         <View style={{ position: 'relative' }}>
-            <Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" tintColor={focused ? '#8B5CF6' : '#5D5F6D'} />
+            <Image source={icon} style={{ width: 24, height: 24 }} resizeMode="contain" tintColor={focused ? '#FE8C00' : '#5D5F6D'} />
             {badge > 0 && (
                 <View style={{
                     position: 'absolute', top: -4, right: -6,
@@ -19,7 +19,7 @@ const TabBarIcon = ({ focused, title, icon, badge }) => (
                 </View>
             )}
         </View>
-        <Text style={{ fontSize: 10, fontFamily: 'QuickSand-Bold', marginTop: 3, color: focused ? '#8B5CF6' : '#5D5F6D' }}>
+        <Text style={{ fontSize: 10, fontFamily: 'QuickSand-Bold', marginTop: 3, color: focused ? '#FE8C00' : '#5D5F6D' }}>
             {title}
         </Text>
     </View>

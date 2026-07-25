@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import {
     Animated,
     Image,
@@ -11,13 +11,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { useGlobalContext } from '../../context/GlobalProvider'
+import RiderMapView from '../../../components/RiderMapView'
+
 
 const STAGES = [
-    { key: 'Pending', label: 'Order Placed', emoji: '📋', desc: 'We received your order' },
-    { key: 'Preparing', label: 'Preparing', emoji: '👨‍🍳', desc: 'Kitchen is cooking your meal' },
-    { key: 'Ready', label: 'Ready for Pickup', emoji: '✅', desc: 'Your meal is ready' },
-    { key: 'Out for Delivery', label: 'Out for Delivery', emoji: '🛵', desc: 'Rider is on the way to you' },
-    { key: 'Completed', label: 'Delivered!', emoji: '🎉', desc: 'Enjoy your meal!' },
+    { key: 'Pending',          label: 'Order Placed',       desc: 'We received your order',          icon: images.pencil,   iconColor: '#3B82F6' },
+    { key: 'Preparing',        label: 'Preparing',          desc: 'Kitchen is cooking your meal',    icon: images.bag,      iconColor: '#F97316' },
+    { key: 'Ready',            label: 'Ready for Pickup',   desc: 'Your meal is ready',              icon: images.check,    iconColor: '#10B981' },
+    { key: 'Out for Delivery', label: 'Out for Delivery',   desc: 'Rider is on the way to you',     icon: images.location, iconColor: '#8B5CF6' },
+    { key: 'Completed',        label: 'Delivered!',         desc: 'Enjoy your meal!',                icon: images.star,     iconColor: '#FE8C00' },
 ]
 
 const STATUS_ORDER = STAGES.map(s => s.key)
@@ -52,7 +54,7 @@ export default function OrderTracking() {
             <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' }} edges={['top']}>
                 <Image source={images.emptyState} style={{ width: 140, height: 140 }} resizeMode="contain" />
                 <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', marginTop: 16 }}>Order not found</Text>
-                <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20, backgroundColor: '#FE8C00', borderRadius: 99, paddingHorizontal: 24, paddingVertical: 12 }}>
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/orders')} style={{ marginTop: 20, backgroundColor: '#FE8C00', borderRadius: 99, paddingHorizontal: 24, paddingVertical: 12 }}>
                     <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>Go Back</Text>
                 </TouchableOpacity>
             </SafeAreaView>
@@ -77,13 +79,14 @@ export default function OrderTracking() {
                 borderBottomColor: '#F3F4F6',
             }}>
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/orders')}
                     style={{
                         width: 36, height: 36, borderRadius: 18,
                         backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center',
                         borderWidth: 1, borderColor: '#E5E7EB',
                     }}
                 >
+
                     <Image source={images.arrowBack} style={{ width: 16, height: 16 }} resizeMode="contain" tintColor="#1C1C2E" />
                 </TouchableOpacity>
                 <View>
@@ -103,7 +106,9 @@ export default function OrderTracking() {
                         borderWidth: 1, borderColor: '#FCA5A5',
                         flexDirection: 'row', alignItems: 'center', gap: 10,
                     }}>
-                        <Text style={{ fontSize: 24 }}>❌</Text>
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+                            <Image source={images.trash} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor="#EF4444" />
+                        </View>
                         <View>
                             <Text style={{ fontSize: 15, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>Order Cancelled</Text>
                             <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Regular', color: '#EF4444' }}>This order has been cancelled.</Text>
@@ -139,7 +144,7 @@ export default function OrderTracking() {
                                                 shadowRadius: 8,
                                                 elevation: 4,
                                             }}>
-                                                <Text style={{ fontSize: 16 }}>{stage.emoji}</Text>
+                                                <Image source={stage.icon} style={{ width: 16, height: 16 }} resizeMode="contain" tintColor="#FFF" />
                                             </Animated.View>
                                         ) : isDone ? (
                                             <View style={{
@@ -148,7 +153,7 @@ export default function OrderTracking() {
                                                 alignItems: 'center', justifyContent: 'center',
                                                 borderWidth: 2, borderColor: '#10B981',
                                             }}>
-                                                <Text style={{ fontSize: 14 }}>✓</Text>
+                                                <Image source={images.check} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#10B981" />
                                             </View>
                                         ) : (
                                             <View style={{
@@ -157,7 +162,7 @@ export default function OrderTracking() {
                                                 alignItems: 'center', justifyContent: 'center',
                                                 borderWidth: 2, borderColor: '#E5E7EB',
                                             }}>
-                                                <Text style={{ fontSize: 14, color: '#D1D5DB' }}>{stage.emoji}</Text>
+                                                <Image source={stage.icon} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#D1D5DB" />
                                             </View>
                                         )}
 
@@ -200,27 +205,38 @@ export default function OrderTracking() {
                 {order.riderName && !isCancelled && (
                     <View style={{
                         marginHorizontal: 20,
-                        backgroundColor: '#F5F3FF',
+                        backgroundColor: '#FFF7ED',
                         borderRadius: 20,
                         padding: 16,
                         marginBottom: 16,
                         borderWidth: 1,
-                        borderColor: '#DDD6FE',
+                        borderColor: '#FED7AA',
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: 12,
                     }}>
-                        <View style={{
-                            width: 46, height: 46, borderRadius: 23,
-                            backgroundColor: '#8B5CF620',
-                            alignItems: 'center', justifyContent: 'center',
-                        }}>
-                            <Text style={{ fontSize: 24 }}>🛵</Text>
+                        <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#FE8C0020', alignItems: 'center', justifyContent: 'center' }}>
+                            <Image source={images.location} style={{ width: 22, height: 22 }} resizeMode="contain" tintColor="#FE8C00" />
                         </View>
-                        <View>
-                            <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#8B5CF6' }}>Your Rider</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#FE8C00' }}>Your Rider</Text>
                             <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>{order.riderName}</Text>
                         </View>
+                    </View>
+                )}
+
+                {/* Live GPS Map Tracking */}
+                {!isCancelled && (order.status === 'Out for Delivery' || order.riderName) && (
+                    <View style={{ marginHorizontal: 20, marginBottom: 16 }}>
+                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', marginBottom: 10 }}>
+                            Live GPS Map Tracking
+                        </Text>
+                        <RiderMapView
+                            riderLat={order.riderLat}
+                            riderLng={order.riderLng}
+                            destinationName={order.address}
+                            height={250}
+                        />
                     </View>
                 )}
 

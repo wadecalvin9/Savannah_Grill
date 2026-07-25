@@ -39,11 +39,11 @@ export default function RiderHistory() {
             {/* Stats */}
             <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 14, gap: 10 }}>
                 <View style={{
-                    flex: 1, backgroundColor: '#F5F3FF', borderRadius: 16, padding: 14,
-                    borderWidth: 1, borderColor: '#DDD6FE',
+                    flex: 1, backgroundColor: '#FFF7ED', borderRadius: 16, padding: 14,
+                    borderWidth: 1, borderColor: '#FED7AA',
                 }}>
-                    <Text style={{ fontSize: 22, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>{completed.length}</Text>
-                    <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Medium', color: '#7C3AED', marginTop: 2 }}>Total Deliveries</Text>
+                    <Text style={{ fontSize: 22, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>{completed.length}</Text>
+                    <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Medium', color: '#F97316', marginTop: 2 }}>Total Deliveries</Text>
                 </View>
                 <View style={{
                     flex: 1, backgroundColor: '#ECFDF5', borderRadius: 16, padding: 14,
@@ -72,7 +72,7 @@ export default function RiderHistory() {
                     keyExtractor={o => o.id}
                     contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 140 }}
                     showsVerticalScrollIndicator={false}
-                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#8B5CF6" />}
+                    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FE8C00" />}
                     renderItem={({ item: order }) => (
                         <View style={{
                             backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16,
@@ -88,8 +88,9 @@ export default function RiderHistory() {
                                         {order.customerName}
                                     </Text>
                                 </View>
-                                <View style={{ backgroundColor: '#F0FDF4', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 }}>
-                                    <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#16A34A' }}>✓ Delivered</Text>
+                                <View style={{ backgroundColor: '#F0FDF4', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Image source={images.check} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#16A34A" />
+                                    <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#16A34A' }}>Delivered</Text>
                                 </View>
                             </View>
 

@@ -84,7 +84,7 @@ export default function ManageProducts() {
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
                         style={{
                             width: 36,
                             height: 36,

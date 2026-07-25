@@ -181,9 +181,9 @@ export default function Orders() {
 
                                 {/* Rider info */}
                                 {order.riderName ? (
-                                    <View style={{ backgroundColor: '#F5F3FF', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Text style={{ fontSize: 14 }}>🛵</Text>
-                                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>
+                                    <View style={{ backgroundColor: '#FFF7ED', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Image source={images.location} style={{ width: 13, height: 13 }} resizeMode="contain" tintColor="#FE8C00" />
+                                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>
                                             {order.riderName} is on the way
                                         </Text>
                                     </View>
@@ -203,7 +203,7 @@ export default function Orders() {
                                             gap: 8,
                                         }}
                                     >
-                                        <Text style={{ fontSize: 14 }}>📍</Text>
+                                        <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
                                         <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
                                             Track Order
                                         </Text>

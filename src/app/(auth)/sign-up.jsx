@@ -7,7 +7,8 @@ import { useGlobalContext } from '../../context/GlobalProvider'
 import { createUser, getCurrentUser } from '../../../lib/appwrite'
 
 export default function sign_up() {
-    const { setIsLoggedIn, setUser } = useGlobalContext()
+    const { setIsLoggedIn, setUser, setUserRole } = useGlobalContext()
+
     const [isSubmiting, setSubmiting] = useState(false)
     const [form, setForm] = useState({
         name: '',
@@ -24,6 +25,8 @@ export default function sign_up() {
             const res = await getCurrentUser()
             setUser(res)
             setIsLoggedIn(true)
+            // New accounts are always 'customer' — reset any stale role state
+            setUserRole('customer')
             router.replace('/')
         } catch (error) {
             Alert.alert("Error", error.message || "Error Signing Up")

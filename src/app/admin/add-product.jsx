@@ -161,7 +161,7 @@ export default function AddProduct() {
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/admin/products')}
                         style={{
                             width: 36,
                             height: 36,

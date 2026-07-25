@@ -22,6 +22,8 @@ const GlobalProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [cartItems, setCartItems] = useState([]);
 
+    const [deliveryLocation, setDeliveryLocation] = useState('Karen, Nairobi');
+
     // Orders state
     const [orders, setOrders] = useState([]);
     const [myOrders, setMyOrders] = useState([]);
@@ -193,7 +195,7 @@ const GlobalProvider = ({ children }) => {
             const doc = await createOrder({
                 customerName: user?.name || 'Guest User',
                 customerId: user?.$id || '',
-                address: address || user?.address || 'Karen, Nairobi',
+                address: address || deliveryLocation || user?.address || 'Karen, Nairobi',
                 note: note || '',
                 items,
                 totalPrice,
@@ -204,7 +206,7 @@ const GlobalProvider = ({ children }) => {
                 $id: doc.$id,
                 createdAt: doc.$createdAt,
                 customerName: doc.customer_name || user?.name || 'Guest User',
-                address: doc.address || 'Karen, Nairobi',
+                address: doc.address || deliveryLocation || 'Karen, Nairobi',
                 note: doc.note || '',
                 items,
                 totalPrice,
@@ -284,6 +286,8 @@ const GlobalProvider = ({ children }) => {
                 setUserRole,
                 isLoading,
                 fetchUser,
+                deliveryLocation,
+                setDeliveryLocation,
                 cartItems,
                 addToCart,
                 removeFromCart,

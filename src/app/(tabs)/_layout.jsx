@@ -35,8 +35,8 @@ const TabBarIcon = ({ focused, title, icon, badge }) => {
 export default function _layout() {
     const { isLoggedIn, isLoading, userRole, myOrders } = useGlobalContext();
 
-    if (!isLoggedIn && !isLoading) {
-        return <Redirect href={"sign-in"} />;
+    if (!isLoading && !isLoggedIn) {
+        return <Redirect href="/sign-in" />;
     }
 
     // Safety-net: redirect riders to their own layout
@@ -44,6 +44,7 @@ export default function _layout() {
     if (!isLoading && isLoggedIn && userRole === 'rider') {
         return <Redirect href="/(rider)/dashboard" />;
     }
+
 
     const activeOrderCount = myOrders.filter(
         o => o.status !== 'Completed' && o.status !== 'Cancelled'

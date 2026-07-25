@@ -15,29 +15,39 @@ import MenuCard from '../../../components/MenuCard'
 import { images, offers } from '../../../constants/index'
 import { getCategories, getMenu } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
+import LocationModal from '../../../components/LocationModal'
 
 export default function Index() {
-    const { user } = useGlobalContext()
+    const { user, deliveryLocation } = useGlobalContext()
     const [menuItems, setMenuItems] = useState([])
     const [categories, setCategories] = useState([])
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [isLocationModalVisible, setIsLocationModalVisible] = useState(false)
+
 
     const fetchData = async (categoryId = null) => {
         setIsLoading(true)
         try {
-            const [menu, cats] = await Promise.all([
-                getMenu({ category: categoryId }),
-                categories.length === 0 ? getCategories() : Promise.resolve(categories),
-            ])
-            setMenuItems(menu)
-            if (categories.length === 0) setCategories(cats)
+            const menuRes = await getMenu({ category: categoryId })
+            setMenuItems(menuRes || [])
+
+            if (categories.length === 0) {
+                try {
+                    const catsRes = await getCategories()
+                    setCategories(catsRes || [])
+                } catch (catErr) {
+                    console.warn('Could not fetch categories:', catErr?.message)
+                }
+            }
         } catch (error) {
             console.error('Failed to fetch menu:', error)
+            setMenuItems([])
         } finally {
             setIsLoading(false)
         }
     }
+
 
     useEffect(() => {
         fetchData()
@@ -93,11 +103,12 @@ export default function Index() {
                                     DELIVER TO
                                 </Text>
                                 <TouchableOpacity
+                                    onPress={() => setIsLocationModalVisible(true)}
                                     style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}
                                 >
                                     <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#1C1C2E" />
-                                    <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
-                                        Karen, Nairobi
+                                    <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }} numberOfLines={1}>
+                                        {deliveryLocation}
                                     </Text>
                                     <Image source={images.arrowDown} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#1C1C2E" />
                                 </TouchableOpacity>
@@ -232,6 +243,10 @@ export default function Index() {
                         </View>
                     </View>
                 )}
+            />
+            <LocationModal
+                visible={isLocationModalVisible}
+                onClose={() => setIsLocationModalVisible(false)}
             />
         </SafeAreaView>
     )

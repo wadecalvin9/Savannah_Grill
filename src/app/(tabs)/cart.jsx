@@ -22,6 +22,7 @@ export default function Cart() {
         totalCartItems,
         totalCartPrice,
         placeOrder,
+        deliveryLocation,
     } = useGlobalContext()
 
     const [note, setNote] = useState('')
@@ -36,7 +37,7 @@ export default function Cart() {
         setIsPlacingOrder(true)
         Alert.alert(
             'Confirm Order',
-            `Place order for KES ${grandTotal.toLocaleString()} to Karen, Nairobi?`,
+            `Place order for KES ${grandTotal.toLocaleString()} to ${deliveryLocation}?`,
             [
                 {
                     text: 'Cancel',
@@ -48,7 +49,7 @@ export default function Cart() {
                     style: 'default',
                     onPress: async () => {
                         try {
-                            const newOrder = await placeOrder({ note, address: 'Karen, Nairobi' })
+                            const newOrder = await placeOrder({ note, address: deliveryLocation })
                             setIsPlacingOrder(false)
                             if (newOrder?.id) {
                                 router.push(`/order-tracking/${newOrder.id}`)
@@ -270,6 +271,31 @@ export default function Cart() {
                                     value={note}
                                     onChangeText={setNote}
                                 />
+                            </View>
+
+                            {/* Delivering To Banner */}
+                            <View style={{
+                                backgroundColor: '#FFF7ED',
+                                borderRadius: 16,
+                                padding: 14,
+                                marginBottom: 16,
+                                borderWidth: 1,
+                                borderColor: '#FED7AA',
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 10,
+                            }}>
+                                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FE8C0020', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Image source={images.location} style={{ width: 16, height: 16 }} resizeMode="contain" tintColor="#FE8C00" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#FE8C00', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                        Delivering To
+                                    </Text>
+                                    <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', marginTop: 1 }} numberOfLines={1}>
+                                        {deliveryLocation}
+                                    </Text>
+                                </View>
                             </View>
 
                             {/* Summary Card */}

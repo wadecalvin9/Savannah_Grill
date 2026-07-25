@@ -14,9 +14,9 @@ import { images } from '../../../constants'
 import { getUsers, updateUserRole } from '../../../lib/appwrite'
 
 const ROLE_STYLES = {
-    admin:    { bg: '#FFF7ED', text: '#F97316', label: '👑 Admin' },
-    rider:    { bg: '#F5F3FF', text: '#8B5CF6', label: '🛵 Rider' },
-    customer: { bg: '#EFF6FF', text: '#3B82F6', label: '👤 Customer' },
+    admin:    { bg: '#FFF7ED', text: '#F97316', label: 'Admin', icon: images.pencil, iconColor: '#F97316' },
+    rider:    { bg: '#FFF7ED', text: '#FE8C00', label: 'Rider', icon: images.location, iconColor: '#FE8C00' },
+    customer: { bg: '#EFF6FF', text: '#3B82F6', label: 'Customer', icon: images.person, iconColor: '#3B82F6' },
 }
 
 export default function ManageUsers() {
@@ -71,7 +71,7 @@ export default function ManageUsers() {
                 backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
             }}>
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
                     style={{
                         width: 36, height: 36, borderRadius: 18,
                         backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center',
@@ -133,7 +133,16 @@ export default function ManageUsers() {
                                     </View>
 
                                     {/* Role badge */}
-                                    <View style={{ backgroundColor: roleStyle.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 }}>
+                                    <View style={{
+                                        backgroundColor: roleStyle.bg,
+                                        paddingHorizontal: 10,
+                                        paddingVertical: 5,
+                                        borderRadius: 99,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        gap: 5
+                                    }}>
+                                        <Image source={roleStyle.icon} style={{ width: 11, height: 11 }} resizeMode="contain" tintColor={roleStyle.iconColor} />
                                         <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: roleStyle.text }}>
                                             {roleStyle.label}
                                         </Text>
@@ -149,13 +158,15 @@ export default function ManageUsers() {
                                             <TouchableOpacity
                                                 onPress={() => handleUpdateRole(u.$id, role, 'rider')}
                                                 style={{
-                                                    flex: 1, backgroundColor: '#F5F3FF', borderRadius: 10,
-                                                    paddingVertical: 9, alignItems: 'center',
-                                                    borderWidth: 1, borderColor: '#DDD6FE',
+                                                    flex: 1, backgroundColor: '#FFF7ED', borderRadius: 10,
+                                                    paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
+                                                    borderWidth: 1, borderColor: '#FED7AA',
+                                                    flexDirection: 'row', gap: 6,
                                                 }}
                                             >
-                                                <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>
-                                                    🛵 Make Rider
+                                                <Image source={images.location} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor="#FE8C00" />
+                                                <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>
+                                                    Make Rider
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -164,12 +175,14 @@ export default function ManageUsers() {
                                                 onPress={() => handleUpdateRole(u.$id, role, 'customer')}
                                                 style={{
                                                     flex: 1, backgroundColor: '#EFF6FF', borderRadius: 10,
-                                                    paddingVertical: 9, alignItems: 'center',
+                                                    paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
                                                     borderWidth: 1, borderColor: '#BFDBFE',
+                                                    flexDirection: 'row', gap: 6,
                                                 }}
                                             >
+                                                <Image source={images.person} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor="#3B82F6" />
                                                 <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#3B82F6' }}>
-                                                    👤 Make Customer
+                                                    Make Customer
                                                 </Text>
                                             </TouchableOpacity>
                                         )}
@@ -178,12 +191,14 @@ export default function ManageUsers() {
                                                 onPress={() => handleUpdateRole(u.$id, role, 'admin')}
                                                 style={{
                                                     flex: 1, backgroundColor: '#FFF7ED', borderRadius: 10,
-                                                    paddingVertical: 9, alignItems: 'center',
+                                                    paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
                                                     borderWidth: 1, borderColor: '#FED7AA',
+                                                    flexDirection: 'row', gap: 6,
                                                 }}
                                             >
+                                                <Image source={images.pencil} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor="#F97316" />
                                                 <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>
-                                                    👑 Make Admin
+                                                    Make Admin
                                                 </Text>
                                             </TouchableOpacity>
                                         )}

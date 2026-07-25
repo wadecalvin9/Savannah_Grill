@@ -124,7 +124,7 @@ export default function EditProduct() {
             })
 
             Alert.alert('Success', `"${name.trim()}" has been updated successfully!`, [
-                { text: 'OK', onPress: () => router.back() }
+                { text: 'OK', onPress: () => router.canGoBack() ? router.back() : router.replace('/admin/products') }
             ])
         } catch (error) {
             console.error('Failed to update menuItem:', error)
@@ -158,7 +158,7 @@ export default function EditProduct() {
                 gap: 12,
             }}>
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/admin/products')}
                     style={{
                         width: 36,
                         height: 36,

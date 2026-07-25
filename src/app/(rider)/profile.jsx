@@ -6,7 +6,7 @@ import { useGlobalContext } from '../../context/GlobalProvider'
 import { router } from 'expo-router'
 
 export default function RiderProfile() {
-    const { user, setIsLoggedIn, setUser, riderHistory } = useGlobalContext()
+    const { user, setIsLoggedIn, setUser, setUserRole, riderHistory } = useGlobalContext()
 
     const completed = riderHistory.filter(o => o.status === 'Completed')
 
@@ -24,6 +24,7 @@ export default function RiderProfile() {
                             await signOut()
                             setUser(null)
                             setIsLoggedIn(false)
+                            setUserRole('customer')
                             router.replace('/sign-in')
                         } catch (error) {
                             Alert.alert('Error', error.message || 'Failed to sign out')
@@ -50,10 +51,10 @@ export default function RiderProfile() {
                 }}>
                     <View style={{
                         width: 80, height: 80, borderRadius: 40,
-                        backgroundColor: '#F5F3FF', alignItems: 'center', justifyContent: 'center',
-                        marginBottom: 12, borderWidth: 3, borderColor: '#DDD6FE',
+                        backgroundColor: '#FFF7ED', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: 12, borderWidth: 3, borderColor: '#FED7AA',
                     }}>
-                        <Text style={{ fontSize: 36 }}>🛵</Text>
+                        <Image source={images.location} style={{ width: 36, height: 36 }} resizeMode="contain" tintColor="#FE8C00" />
                     </View>
                     <Text style={{ fontSize: 20, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
                         {user?.name || 'Rider'}
@@ -62,11 +63,13 @@ export default function RiderProfile() {
                         {user?.email}
                     </Text>
                     <View style={{
-                        marginTop: 10, backgroundColor: '#F5F3FF',
+                        marginTop: 10, backgroundColor: '#FFF7ED',
                         paddingHorizontal: 14, paddingVertical: 5,
-                        borderRadius: 99, borderWidth: 1, borderColor: '#DDD6FE',
+                        borderRadius: 99, borderWidth: 1, borderColor: '#FED7AA',
+                        flexDirection: 'row', alignItems: 'center', gap: 6,
                     }}>
-                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>🛵 Rider</Text>
+                        <Image source={images.location} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor="#FE8C00" />
+                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>Rider</Text>
                     </View>
                 </View>
 
@@ -76,7 +79,7 @@ export default function RiderProfile() {
                         flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14,
                         borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center',
                     }}>
-                        <Text style={{ fontSize: 26, fontFamily: 'QuickSand-Bold', color: '#8B5CF6' }}>{completed.length}</Text>
+                        <Text style={{ fontSize: 26, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>{completed.length}</Text>
                         <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Medium', color: '#9CA3AF', marginTop: 2 }}>Deliveries</Text>
                     </View>
                     <View style={{

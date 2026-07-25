@@ -48,7 +48,7 @@ const MenuListItem = ({ icon, title, subtitle, onPress, isLast = false, titleCol
 )
 
 export default function Profile() {
-    const { user, setIsLoggedIn, setUser } = useGlobalContext()
+    const { user, setIsLoggedIn, setUser, setUserRole, userRole } = useGlobalContext()
 
     const handleSignOut = async () => {
         Alert.alert(
@@ -64,6 +64,7 @@ export default function Profile() {
                             await signOut()
                             setUser(null)
                             setIsLoggedIn(false)
+                            setUserRole('customer')
                             router.replace('/sign-in')
                         } catch (error) {
                             Alert.alert('Error', error.message || 'Failed to sign out')
@@ -175,13 +176,24 @@ export default function Profile() {
                         subtitle="Check items in your shopping cart"
                         onPress={() => router.push('/cart')}
                     />
-                    <MenuListItem
-                        icon={images.pencil}
-                        title="Admin Panel"
-                        subtitle="Manage products, orders & catalog"
-                        onPress={() => router.push('/admin')}
-                        isLast
-                    />
+                    {userRole === 'admin' && (
+                        <MenuListItem
+                            icon={images.pencil}
+                            title="Admin Panel"
+                            subtitle="Manage products, orders & catalog"
+                            onPress={() => router.push('/admin')}
+                            isLast
+                        />
+                    )}
+                    {userRole !== 'admin' && (
+                        <MenuListItem
+                            icon={images.search}
+                            title="My Orders"
+                            subtitle="View order history and track deliveries"
+                            onPress={() => router.push('/orders')}
+                            isLast
+                        />
+                    )}
                 </View>
 
                 {/* Sign Out Group */}

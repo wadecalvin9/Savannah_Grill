@@ -142,7 +142,7 @@ export default function MenuDetail() {
                 <Image source={images.emptyState} style={{ width: 160, height: 160 }} resizeMode="contain" />
                 <Text style={{ fontFamily: 'QuickSand-Bold', color: '#9CA3AF', marginTop: 16 }}>Item not found</Text>
                 <TouchableOpacity
-                    onPress={() => router.back()}
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
                     style={{ marginTop: 16, backgroundColor: '#FE8C00', borderRadius: 99, paddingHorizontal: 24, paddingVertical: 12 }}
                 >
                     <Text style={{ fontFamily: 'QuickSand-Bold', color: '#FFFFFF' }}>Go Back</Text>
@@ -206,7 +206,7 @@ export default function MenuDetail() {
                     {/* Navigation bar */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <TouchableOpacity
-                            onPress={() => router.back()}
+                            onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
                             hitSlop={8}
                             style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F3F4F6' }}
                         >
