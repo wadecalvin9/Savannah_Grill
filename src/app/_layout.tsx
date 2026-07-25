@@ -17,6 +17,8 @@ function RootLayoutInner() {
     "QuickSand-Light": require("../../assets/fonts/Quicksand-Light.ttf"),
   });
 
+  const { isLoading } = useGlobalContext();
+
   useEffect(() => {
     if (fontsLoaded || error) {
       SplashScreen.hideAsync();
@@ -25,6 +27,18 @@ function RootLayoutInner() {
 
   if (!fontsLoaded && !error) return null;
 
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FAFAFA" }}>
+        <ActivityIndicator size="large" color="#FE8C00" />
+      </View>
+    );
+  }
+
+  // Always render the Stack — role-based routing is handled in:
+  //   sign-in.jsx (on login)
+  //   (tabs)/_layout.jsx (safety-net redirect for riders)
+  //   (rider)/_layout.jsx (safety-net redirect for non-riders)
   return <Stack screenOptions={{ headerShown: false }} />;
 }
 

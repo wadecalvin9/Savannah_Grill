@@ -1,14 +1,37 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { getCurrentUser } from '../../lib/appwrite';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+    acceptDelivery,
+    createOrder,
+    getCurrentUser,
+    getMyOrders,
+    getOrders,
+    getReadyOrders,
+    getRiderDeliveries,
+    updateOrderStatusDB,
+} from '../../lib/appwrite';
 
 const GlobalContext = createContext();
 export const useGlobalContext = () => useContext(GlobalContext);
 
+const POLL_INTERVAL_MS = 12000; // refresh every 12 seconds
+
 const GlobalProvider = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState(null);
+    const [userRole, setUserRole] = useState('customer');
     const [isLoading, setIsLoading] = useState(true);
+    const [cartItems, setCartItems] = useState([]);
 
+    // Orders state
+    const [orders, setOrders] = useState([]);
+    const [myOrders, setMyOrders] = useState([]);
+    const [riderOrders, setRiderOrders] = useState([]);
+    const [riderHistory, setRiderHistory] = useState([]);
+    const [activeDelivery, setActiveDelivery] = useState(null);
+
+    const pollRef = useRef(null);
+
+    // ── Auth ──────────────────────────────────────────────
     const fetchUser = async () => {
         setIsLoading(true);
         try {
@@ -16,14 +39,17 @@ const GlobalProvider = ({ children }) => {
             if (res) {
                 setIsLoggedIn(true);
                 setUser(res);
+                setUserRole(res.role || 'customer');
             } else {
                 setIsLoggedIn(false);
                 setUser(null);
+                setUserRole('customer');
             }
         } catch (error) {
-            console.error("GlobalProvider fetchUser error:", error);
+            console.error('GlobalProvider fetchUser error:', error);
             setIsLoggedIn(false);
             setUser(null);
+            setUserRole('customer');
         } finally {
             setIsLoading(false);
         }
@@ -33,6 +59,220 @@ const GlobalProvider = ({ children }) => {
         fetchUser();
     }, []);
 
+    // ── Data fetchers ─────────────────────────────────────
+    const fetchOrders = async () => {
+        try {
+            const dbOrders = await getOrders();
+            setOrders(dbOrders || []);
+        } catch (error) {
+            console.error('GlobalProvider fetchOrders error:', error);
+        }
+    };
+
+    const fetchMyOrders = async () => {
+        if (!user?.$id) return;
+        try {
+            const result = await getMyOrders(user.$id);
+            setMyOrders(result || []);
+        } catch (error) {
+            // customer_id attribute may not exist yet — fail silently
+            console.warn('fetchMyOrders skipped:', error?.message);
+        }
+    };
+
+    const fetchRiderData = async () => {
+        if (!user?.$id) return;
+        try {
+            const ready = await getReadyOrders();
+            setRiderOrders(ready || []);
+        } catch (error) {
+            console.warn('fetchRiderData (ready orders) error:', error?.message);
+        }
+
+        // Rider history / active — requires rider_id attribute in Appwrite
+        try {
+            const history = await getRiderDeliveries(user.$id);
+            setRiderHistory(history || []);
+            const active = (history || []).find(o => o.status === 'Out for Delivery');
+            setActiveDelivery(active || null);
+        } catch (error) {
+            // rider_id attribute may not exist yet in Appwrite schema — fail silently
+            console.warn('fetchRiderData (history) skipped — add rider_id attribute to orders collection:', error?.message);
+        }
+    };
+
+    // ── Initial load + polling (replaces Realtime to avoid SDK bug) ──
+    useEffect(() => {
+        if (!user) return;
+
+        const role = user.role || 'customer';
+
+        // Initial fetch
+        if (role === 'admin') {
+            fetchOrders();
+        } else if (role === 'rider') {
+            fetchRiderData();
+        } else {
+            fetchOrders();
+            fetchMyOrders();
+        }
+
+        // Start polling
+        pollRef.current = setInterval(() => {
+            if (role === 'admin') {
+                fetchOrders();
+            } else if (role === 'rider') {
+                fetchRiderData();
+            } else {
+                fetchOrders();
+                fetchMyOrders();
+            }
+        }, POLL_INTERVAL_MS);
+
+        return () => {
+            if (pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
+        };
+    }, [user]);
+
+    // ── Cart ──────────────────────────────────────────────
+    const addToCart = (item, quantity = 1) => {
+        setCartItems((prev) => {
+            const existingIndex = prev.findIndex((ci) => ci.item.$id === item.$id);
+            if (existingIndex > -1) {
+                const updated = [...prev];
+                updated[existingIndex].quantity += quantity;
+                return updated;
+            } else {
+                return [...prev, { item, quantity }];
+            }
+        });
+    };
+
+    const removeFromCart = (itemId) => {
+        setCartItems((prev) => prev.filter((ci) => ci.item.$id !== itemId));
+    };
+
+    const updateQuantity = (itemId, newQty) => {
+        if (newQty <= 0) {
+            removeFromCart(itemId);
+        } else {
+            setCartItems((prev) =>
+                prev.map((ci) =>
+                    ci.item.$id === itemId ? { ...ci, quantity: newQty } : ci
+                )
+            );
+        }
+    };
+
+    const clearCart = () => {
+        setCartItems([]);
+    };
+
+    const totalCartItems = cartItems.reduce((acc, curr) => acc + curr.quantity, 0);
+
+    const totalCartPrice = cartItems.reduce(
+        (acc, curr) => acc + (curr.item.price ?? 0) * curr.quantity,
+        0
+    );
+
+    // ── Place Order ───────────────────────────────────────
+    const placeOrder = async ({ note, address }) => {
+        if (cartItems.length === 0) return null;
+        const items = cartItems.map(ci => ({
+            name: ci.item.name,
+            quantity: ci.quantity,
+            price: ci.item.price,
+            image_url: ci.item.image_url,
+        }));
+        const totalPrice = totalCartPrice + (totalCartPrice > 1000 ? 0 : 150);
+
+        try {
+            const doc = await createOrder({
+                customerName: user?.name || 'Guest User',
+                customerId: user?.$id || '',
+                address: address || user?.address || 'Karen, Nairobi',
+                note: note || '',
+                items,
+                totalPrice,
+            });
+
+            const newOrderObj = {
+                id: doc.$id,
+                $id: doc.$id,
+                createdAt: doc.$createdAt,
+                customerName: doc.customer_name || user?.name || 'Guest User',
+                address: doc.address || 'Karen, Nairobi',
+                note: doc.note || '',
+                items,
+                totalPrice,
+                status: 'Pending',
+                riderId: '',
+                riderName: '',
+            };
+
+            setOrders(prev => [newOrderObj, ...prev]);
+            setMyOrders(prev => [newOrderObj, ...prev]);
+            clearCart();
+            return newOrderObj;
+        } catch (error) {
+            console.error('Failed to persist order in Appwrite:', error);
+            clearCart();
+            return null;
+        }
+    };
+
+    // ── Update Order Status ───────────────────────────────
+    const updateOrderStatus = async (orderId, newStatus) => {
+        const update = (o) =>
+            o.id === orderId || o.$id === orderId ? { ...o, status: newStatus } : o;
+        setOrders(prev => prev.map(update));
+        setMyOrders(prev => prev.map(update));
+        try {
+            await updateOrderStatusDB(orderId, newStatus);
+        } catch (error) {
+            console.error('Failed to update order status in DB:', error);
+        }
+    };
+
+    // ── Rider: Accept a delivery ──────────────────────────
+    const acceptRiderDelivery = async (order) => {
+        if (!user) return;
+        try {
+            await acceptDelivery(order.id, user.$id, user.name);
+            const updatedOrder = {
+                ...order,
+                status: 'Out for Delivery',
+                riderId: user.$id,
+                riderName: user.name,
+            };
+            setActiveDelivery(updatedOrder);
+            setRiderOrders(prev => prev.filter(o => o.id !== order.id));
+            setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+        } catch (error) {
+            console.error('acceptRiderDelivery error:', error);
+            throw error;
+        }
+    };
+
+    // ── Rider: Complete a delivery ────────────────────────
+    const completeRiderDelivery = async (orderId) => {
+        try {
+            await updateOrderStatusDB(orderId, 'Completed');
+            const update = (o) =>
+                o.id === orderId ? { ...o, status: 'Completed' } : o;
+            setActiveDelivery(null);
+            setOrders(prev => prev.map(update));
+            setMyOrders(prev => prev.map(update));
+            setRiderHistory(prev => prev.map(update));
+        } catch (error) {
+            console.error('completeRiderDelivery error:', error);
+            throw error;
+        }
+    };
+
     return (
         <GlobalContext.Provider
             value={{
@@ -40,8 +280,29 @@ const GlobalProvider = ({ children }) => {
                 setIsLoggedIn,
                 user,
                 setUser,
+                userRole,
+                setUserRole,
                 isLoading,
-                fetchUser
+                fetchUser,
+                cartItems,
+                addToCart,
+                removeFromCart,
+                updateQuantity,
+                clearCart,
+                totalCartItems,
+                totalCartPrice,
+                orders,
+                myOrders,
+                riderOrders,
+                riderHistory,
+                activeDelivery,
+                placeOrder,
+                updateOrderStatus,
+                fetchOrders,
+                fetchMyOrders,
+                fetchRiderData,
+                acceptRiderDelivery,
+                completeRiderDelivery,
             }}
         >
             {children}

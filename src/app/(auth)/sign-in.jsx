@@ -7,7 +7,8 @@ import { useGlobalContext } from '../../context/GlobalProvider'
 import { getCurrentUser, signin } from '../../../lib/appwrite'
 
 export default function sign_in() {
-    const { setIsLoggedIn, setUser } = useGlobalContext()
+    const { setIsLoggedIn, setUser, setUserRole } = useGlobalContext()
+
     const [isSubmiting, setSubmiting] = useState(false)
     const [form, setForm] = useState({
         email: '',
@@ -22,13 +23,24 @@ export default function sign_in() {
             const res = await getCurrentUser()
             setUser(res)
             setIsLoggedIn(true)
-            router.replace('/')
+            setUserRole(res?.role || 'customer')
+
+            // Role-based navigation
+            const role = res?.role || 'customer'
+            if (role === 'rider') {
+                router.replace('/(rider)/dashboard')
+            } else if (role === 'admin') {
+                router.replace('/admin')
+            } else {
+                router.replace('/')
+            }
         } catch (error) {
             Alert.alert("Error", error.message || "Error Signing in")
         } finally {
             setSubmiting(false)
         }
     }
+
     return (
         <View className="bg-white gap-10 rounded-lg p-5 mt-5">
 

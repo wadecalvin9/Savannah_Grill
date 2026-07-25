@@ -3,10 +3,29 @@ import { Redirect, Tabs } from "expo-router";
 import { Image, Text, View } from "react-native";
 import { images } from "../../../constants";
 import { useGlobalContext } from "../../context/GlobalProvider";
-const TabBarIcon = ({ focused, title, icon }) => {
+
+const TabBarIcon = ({ focused, title, icon, badge }) => {
     return (
         <View className="flex flex-col items-center justify-center h-full w-full">
-            <Image source={icon} className="size-6" resizeMode="contain" tintColor={focused ? '#FE8C00' : '#5D5F6D'} />
+            <View style={{ position: 'relative' }}>
+                <Image source={icon} className="size-6" resizeMode="contain" tintColor={focused ? '#FE8C00' : '#5D5F6D'} />
+                {badge > 0 && (
+                    <View style={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -6,
+                        backgroundColor: '#EF4444',
+                        borderRadius: 99,
+                        minWidth: 14,
+                        height: 14,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        paddingHorizontal: 3,
+                    }}>
+                        <Text style={{ fontSize: 8, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>{badge > 9 ? '9+' : badge}</Text>
+                    </View>
+                )}
+            </View>
             <Text className={cn('text-xs font-bold mt-1', focused ? 'text-primary' : 'text-gray-200')}>{title}</Text>
         </View>
     )
@@ -14,11 +33,21 @@ const TabBarIcon = ({ focused, title, icon }) => {
 
 
 export default function _layout() {
-    const { isLoggedIn, isLoading } = useGlobalContext();
+    const { isLoggedIn, isLoading, userRole, myOrders } = useGlobalContext();
 
     if (!isLoggedIn && !isLoading) {
         return <Redirect href={"sign-in"} />;
     }
+
+    // Safety-net: redirect riders to their own layout
+    // Only fires after loading is complete to avoid redirecting before role is known
+    if (!isLoading && isLoggedIn && userRole === 'rider') {
+        return <Redirect href="/(rider)/dashboard" />;
+    }
+
+    const activeOrderCount = myOrders.filter(
+        o => o.status !== 'Completed' && o.status !== 'Cancelled'
+    ).length;
 
     return (
         <Tabs
@@ -93,6 +122,20 @@ export default function _layout() {
                     />
                 }}
             />
+
+            <Tabs.Screen
+                name="orders"
+                options={{
+                    title: 'Orders',
+                    tabBarIcon: ({ focused }) => <TabBarIcon
+                        title={'orders'}
+                        icon={images.clock}
+                        focused={focused}
+                        badge={activeOrderCount}
+                    />
+                }}
+            />
+
             <Tabs.Screen
                 name="profile"
                 options={{
