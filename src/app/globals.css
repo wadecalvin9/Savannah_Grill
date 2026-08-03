@@ -55,11 +55,11 @@ html, body, #root {
     }
 
     .label {
-        @apply text-base text-start w-full font-quicksand-medium text-gray-500 pl-2;
+        @apply text-base text-start w-full font-quicksand-medium text-dark-500 pl-2;
     }
 
     .input {
-        @apply rounded-lg p-3 w-full text-base font-quicksand-semibold text-dark-100 border-b leading-5;
+        @apply rounded-lg p-3 w-full text-base font-quicksand-semibold text-dark-100 border-b leading-5 bg-white;
     }
 
     .filter {

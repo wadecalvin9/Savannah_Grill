@@ -6,86 +6,76 @@ import CustomInput from "../../../components/CustomInput"
 import { useGlobalContext } from '../../context/GlobalProvider'
 import { getCurrentUser, signin } from '../../../lib/appwrite'
 
-export default function sign_in() {
-    const { setIsLoggedIn, setUser, setUserRole } = useGlobalContext()
+export default function SignIn() {
+  const { setIsLoggedIn, setUser, setUserRole } = useGlobalContext()
 
-    const [isSubmiting, setSubmiting] = useState(false)
-    const [form, setForm] = useState({
-        email: '',
-        password: ''
-    })
-    const submit = async () => {
-        if (!form.email || !form.password) return Alert.alert("Error", 'Please Enter Valid Email Address & Password')
+  const [isSubmitting, setSubmitting] = useState(false)
+  const [form, setForm] = useState({
+    email: '',
+    password: ''
+  })
 
-        setSubmiting(true)
-        try {
-            await signin({ email: form.email, password: form.password })
-            const res = await getCurrentUser()
-            setUser(res)
-            setIsLoggedIn(true)
-            setUserRole(res?.role || 'customer')
-
-            // Role-based navigation
-            const role = res?.role || 'customer'
-            if (role === 'rider') {
-                router.replace('/(rider)/dashboard')
-            } else if (role === 'admin') {
-                router.replace('/admin')
-            } else {
-                router.replace('/')
-            }
-        } catch (error) {
-            Alert.alert("Error", error.message || "Error Signing in")
-        } finally {
-            setSubmiting(false)
-        }
+  const submit = async () => {
+    if (!form.email || !form.password) {
+      return Alert.alert("Error", "Please enter a valid email and password")
     }
 
-    return (
-        <View className="bg-white gap-10 rounded-lg p-5 mt-5">
+    setSubmitting(true)
+    try {
+      await signin({ email: form.email, password: form.password })
+      const res = await getCurrentUser()
+      setUser(res)
+      setIsLoggedIn(true)
+      const role = res?.role || 'customer'
+      setUserRole(role)
 
-            <CustomInput
-                placeholder="Enter your email"
-                value={form.email}
-                onChangeText={(value) => {
-                    setForm({
-                        ...form, email: value
-                    })
-                }}
+      if (role === 'rider') {
+        router.replace('/(rider)/dashboard')
+      } else if (role === 'admin') {
+        router.replace('/admin')
+      } else {
+        router.replace('/')
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message || "Error Signing in")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
-                label="Email"
-                keyboardType="email-address"
+  return (
+    <View className="w-full gap-6">
+      <CustomInput
+        label="Email"
+        placeholder="Enter your email"
+        value={form.email}
+        onChangeText={(value) => setForm({ ...form, email: value })}
+        keyboardType="email-address"
+      />
 
-            />
-            <CustomInput
-                placeholder="Enter your password"
-                value={form.password}
-                onChangeText={(value) => setForm({
+      <CustomInput
+        label="Password"
+        placeholder="Enter your password"
+        value={form.password}
+        onChangeText={(value) => setForm({ ...form, password: value })}
+        secureTextEntry
+      />
 
-                    ...form, password: value
-                })
+      <CustomButton
+        title="Sign In"
+        onPress={submit}
+        isLoading={isSubmitting}
+        style="mt-2"
+      />
 
-
-                }
-
-                label="Password"
-                secureTextEntry={true}
-
-            />
-            <CustomButton
-                title="Sign In"
-                onPress={submit}
-                isLoading={isSubmiting}
-            />
-
-            <View className="flex-row items-center justify-center gap-1 mt-2">
-                <Text className="base-regular text-gray-100">
-                    Don't have an account?
-                </Text>
-                <Link href='sign-up'>
-                    <Text className='base-bold text-primary'>Sign Up</Text>
-                </Link>
-            </View>
-        </View>
-    )
+      <View className="flex-row items-center justify-center gap-1 mt-4">
+        <Text className="base-regular text-dark-100">
+          Don't have an account?
+        </Text>
+        <Link href="/sign-up">
+          <Text className="base-bold text-primary">Sign Up</Text>
+        </Link>
+      </View>
+    </View>
+  )
 }
