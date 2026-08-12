@@ -6,13 +6,15 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    Platform
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import MenuCard from '../../../components/MenuCard'
 import { images } from '../../../constants'
 import { getMenu } from '../../../lib/appwrite'
 import seed from '../../../lib/seed'
+import WebFooter from '../../../components/WebFooter'
 
 export default function Search() {
     const [query, setQuery] = useState('')
@@ -20,6 +22,7 @@ export default function Search() {
     const [isLoading, setIsLoading] = useState(false)
     const [isSeeding, setIsSeeding] = useState(false)
     const debounceRef = useRef(null)
+    const isWeb = Platform.OS === 'web'
 
     const fetchMenu = async (q = '') => {
         setIsLoading(true)
@@ -27,7 +30,8 @@ export default function Search() {
             const items = await getMenu({ query: q || undefined })
             setMenuItems(items)
         } catch (error) {
-            console.error('Search error:', error)
+            console.warn('Search error:', error?.message)
+            setMenuItems([])
         } finally {
             setIsLoading(false)
         }
@@ -69,15 +73,42 @@ export default function Search() {
             <View className="px-4 pt-4 pb-2 bg-gray-50">
                 <Text className="h3-bold text-dark-100 mb-3">Search Menu</Text>
 
-                <View className="searchbar px-4 py-3 mb-3">
+                <View
+                    style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 14,
+                    borderWidth: 1,
+                    borderColor: '#131314',
+                    paddingHorizontal: 14,
+                    paddingVertical: 11,
+                    marginBottom: 14,
+                    gap: 10,
+                        ...(isWeb && {
+                            maxWidth: 560,
+                            alignSelf: 'center',
+                            width: '100%',
+                        }),
+                    }}
+                >
+                       
                     <Image
                         source={images.search}
-                        className="size-5"
+                        style={{ width: 16, height: 16 }}
                         resizeMode="contain"
                         tintColor="#5D5F6D"
                     />
                     <TextInput
-                        className="flex-1 paragraph-medium text-dark-100"
+                        style={{
+                            flex: 1,
+                            fontSize: 15,
+                            fontFamily: 'QuickSand-Medium',
+                            color: '#1C1C2E',
+                            paddingVertical: 0, // tighter vertical alignment
+                            outlineWidth: 0,
+                            outlineStyle: 'none',
+                        }}
                         placeholder="Search dishes..."
                         placeholderTextColor="#9CA3AF"
                         value={query}
@@ -87,7 +118,9 @@ export default function Search() {
                     />
                     {query.length > 0 && (
                         <TouchableOpacity onPress={() => { setQuery(''); fetchMenu('') }}>
-                            <Text className="small-bold text-primary">Clear</Text>
+                            <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>
+                                Clear
+                            </Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -106,7 +139,7 @@ export default function Search() {
                 data={menuItems}
                 keyExtractor={keyExtractor}
                 numColumns={2}
-                contentContainerStyle={{ paddingBottom: 120, paddingTop: 8 }}
+                contentContainerStyle={{flexGrow: 1, paddingBottom: isWeb? 10 : 120, paddingTop: 8 }}
                 columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 8 }}
                 renderItem={renderItem}
                 keyboardShouldPersistTaps="handled"
@@ -122,6 +155,12 @@ export default function Search() {
                         </View>
                     )
                 }
+                ListFooterComponent={isWeb ? (
+                    <View style={{marginTop: 32}}>
+                        <WebFooter /> 
+                    </View>
+
+                ) : null}
             />
         </SafeAreaView>
     )
