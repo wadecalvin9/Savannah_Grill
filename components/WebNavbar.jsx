@@ -151,7 +151,7 @@ const WebNavbar = () => {
                     </Pressable>
                 ) : (
                     <Pressable
-                        onPress={() => router.push('/(tabs)/profile')}
+                        onPress={() => router.push('/(tabs)')}
                         className="bg-primary px-4 py-2 rounded-full"
                         style={({ hovered }) => [
                             hovered && { opacity: 0.9 }

@@ -6,216 +6,289 @@ import { signOut } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
 const MenuListItem = ({ icon, title, subtitle, onPress, isLast = false, titleColor = '#1C1C2E' }) => (
-    <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.7}
-        style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            borderBottomWidth: isLast ? 0 : 1,
-            borderBottomColor: '#F3F4F6',
-        }}
-    >
-        <View style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: '#F3F4F6',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 14,
-        }}>
-            <Image source={icon} style={{ width: 18, height: 18 }} resizeMode="contain" tintColor={titleColor === '#EF4444' ? '#EF4444' : '#1C1C2E'} />
-        </View>
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.7}
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: isLast ? 0 : 1,
+      borderBottomColor: '#F3F4F6',
+    }}
+  >
+    <View style={{
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: '#F3F4F6',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    }}>
+      <Image
+        source={icon}
+        style={{ width: 18, height: 18 }}
+        resizeMode="contain"
+        tintColor={titleColor === '#EF4444' ? '#EF4444' : '#1C1C2E'}
+      />
+    </View>
 
-        <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontFamily: 'QuickSand-Bold', color: titleColor }}>
-                {title}
-            </Text>
-            {subtitle ? (
-                <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Regular', color: '#6B7280', marginTop: 1 }}>
-                    {subtitle}
-                </Text>
-            ) : null}
-        </View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontSize: 15, fontFamily: 'QuickSand-Bold', color: titleColor }}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Regular', color: '#6B7280', marginTop: 1 }}>
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
 
-        {onPress && (
-            <Image source={images.arrowRight} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#9CA3AF" />
-        )}
-    </TouchableOpacity>
+    {onPress && (
+      <Image source={images.arrowRight} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#9CA3AF" />
+    )}
+  </TouchableOpacity>
 )
 
 export default function Profile() {
-    const { user, setIsLoggedIn, setUser, setUserRole, userRole } = useGlobalContext()
+  const { user, isLoggedIn, setIsLoggedIn, setUser, setUserRole, userRole } = useGlobalContext()
 
-    const handleSignOut = async () => {
-        Alert.alert(
-            'Sign Out',
-            'Are you sure you want to sign out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Sign Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await signOut()
-                            setUser(null)
-                            setIsLoggedIn(false)
-                            setUserRole('customer')
-                            router.replace('/sign-in')
-                        } catch (error) {
-                            Alert.alert('Error', error.message || 'Failed to sign out')
-                        }
-                    }
-                }
-            ]
-        )
-    }
-
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
-            <ScrollView
-                contentContainerStyle={{ paddingBottom: 120 }}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Header Title */}
-                <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-                    <Text style={{ fontSize: 24, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
-                        Profile
-                    </Text>
-                </View>
-
-                {/* User Info Card */}
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    marginHorizontal: 20,
-                    borderRadius: 20,
-                    padding: 16,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                }}>
-                    <Image
-                        source={
-                            user?.profile
-                                ? { uri: user.profile }
-                                : images.avatar
-                        }
-                        style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#F3F4F6' }}
-                        resizeMode="cover"
-                    />
-
-                    <View style={{ flex: 1, marginLeft: 14 }}>
-                        <Text style={{ fontSize: 18, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
-                            {user?.name || 'User'}
-                        </Text>
-                        <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Medium', color: '#6B7280', marginTop: 2 }}>
-                            {user?.email || 'No email attached'}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Account Details Group */}
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    marginHorizontal: 20,
-                    marginTop: 20,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    overflow: 'hidden',
-                }}>
-                    <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
-                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            Account Information
-                        </Text>
-                    </View>
-
-                    <MenuListItem
-                        icon={images.person}
-                        title="Name"
-                        subtitle={user?.name || '—'}
-                    />
-                    <MenuListItem
-                        icon={images.envelope}
-                        title="Email"
-                        subtitle={user?.email || '—'}
-                        isLast
-                    />
-                </View>
-
-                {/* Quick Navigation Group */}
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    marginHorizontal: 20,
-                    marginTop: 16,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    overflow: 'hidden',
-                }}>
-                    <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
-                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            Quick Access
-                        </Text>
-                    </View>
-
-                    <MenuListItem
-                        icon={images.search}
-                        title="Explore Menu"
-                        subtitle="Browse and search food items"
-                        onPress={() => router.push('/search')}
-                    />
-                    <MenuListItem
-                        icon={images.bag}
-                        title="View Cart"
-                        subtitle="Check items in your shopping cart"
-                        onPress={() => router.push('/cart')}
-                    />
-                    {userRole === 'admin' && (
-                        <MenuListItem
-                            icon={images.pencil}
-                            title="Admin Panel"
-                            subtitle="Manage products, orders & catalog"
-                            onPress={() => router.push('/admin')}
-                            isLast
-                        />
-                    )}
-                    {userRole !== 'admin' && (
-                        <MenuListItem
-                            icon={images.search}
-                            title="My Orders"
-                            subtitle="View order history and track deliveries"
-                            onPress={() => router.push('/orders')}
-                            isLast
-                        />
-                    )}
-                </View>
-
-                {/* Sign Out Group */}
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    marginHorizontal: 20,
-                    marginTop: 16,
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    overflow: 'hidden',
-                }}>
-                    <MenuListItem
-                        icon={images.logout}
-                        title="Sign Out"
-                        titleColor="#EF4444"
-                        onPress={handleSignOut}
-                        isLast
-                    />
-                </View>
-
-            </ScrollView>
-        </SafeAreaView>
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut()
+              setUser(null)
+              setIsLoggedIn(false)
+              setUserRole('customer')
+              router.replace('/')          // back to home as guest
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to sign out')
+            }
+          }
+        }
+      ]
     )
+  }
+
+  // ─── GUEST STATE ───────────────────────────────────────
+  if (!isLoggedIn || !user) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+          <Text style={{ fontSize: 24, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
+            Profile
+          </Text>
+        </View>
+
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 32,
+          marginTop: -40,
+        }}>
+          <View style={{
+            width: 88,
+            height: 88,
+            borderRadius: 44,
+            backgroundColor: '#FFF7ED',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}>
+            <Image
+              source={images.person}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+              tintColor="#FE8C00"
+            />
+          </View>
+
+          <Text style={{
+            fontSize: 20,
+            fontFamily: 'QuickSand-Bold',
+            color: '#1C1C2E',
+            textAlign: 'center',
+          }}>
+            You're browsing as a guest
+          </Text>
+
+          <Text style={{
+            fontSize: 14,
+            fontFamily: 'QuickSand-Medium',
+            color: '#6B7280',
+            textAlign: 'center',
+            marginTop: 8,
+            lineHeight: 20,
+          }}>
+            Sign in to place orders, track deliveries and save your favourites.
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => router.push('/sign-in')}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: '#FE8C00',
+              paddingVertical: 14,
+              paddingHorizontal: 40,
+              borderRadius: 14,
+              marginTop: 28,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#FFFFFF' }}>
+              Sign In
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/sign-up')}
+            activeOpacity={0.7}
+            style={{ marginTop: 16 }}
+          >
+            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-SemiBold', color: '#FE8C00' }}>
+              Create an account
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  // ─── LOGGED-IN STATE ───────────────────────────────────
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+          <Text style={{ fontSize: 24, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
+            Profile
+          </Text>
+        </View>
+
+        {/* User Info Card */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 20,
+          borderRadius: 20,
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: '#E5E7EB',
+        }}>
+          <Image
+            source={user?.profile ? { uri: user.profile } : images.avatar}
+            style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#F3F4F6' }}
+            resizeMode="cover"
+          />
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <Text style={{ fontSize: 18, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
+              {user?.name || 'User'}
+            </Text>
+            <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Medium', color: '#6B7280', marginTop: 2 }}>
+              {user?.email || 'No email attached'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Account Information */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 20,
+          marginTop: 20,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: '#E5E7EB',
+          overflow: 'hidden',
+        }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+            <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Account Information
+            </Text>
+          </View>
+
+          <MenuListItem icon={images.person} title="Name" subtitle={user?.name || '—'} />
+          <MenuListItem icon={images.envelope} title="Email" subtitle={user?.email || '—'} isLast />
+        </View>
+
+        {/* Quick Access */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 20,
+          marginTop: 16,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: '#E5E7EB',
+          overflow: 'hidden',
+        }}>
+          <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+            <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Quick Access
+            </Text>
+          </View>
+
+          <MenuListItem
+            icon={images.search}
+            title="Explore Menu"
+            subtitle="Browse and search food items"
+            onPress={() => router.push('/search')}
+          />
+          <MenuListItem
+            icon={images.bag}
+            title="View Cart"
+            subtitle="Check items in your shopping cart"
+            onPress={() => router.push('/cart')}
+          />
+          {userRole === 'admin' ? (
+            <MenuListItem
+              icon={images.pencil}
+              title="Admin Panel"
+              subtitle="Manage products, orders & catalog"
+              onPress={() => router.push('/admin')}
+              isLast
+            />
+          ) : (
+            <MenuListItem
+              icon={images.search}
+              title="My Orders"
+              subtitle="View order history and track deliveries"
+              onPress={() => router.push('/orders')}
+              isLast
+            />
+          )}
+        </View>
+
+        {/* Sign Out */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 20,
+          marginTop: 16,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: '#E5E7EB',
+          overflow: 'hidden',
+        }}>
+          <MenuListItem
+            icon={images.logout}
+            title="Sign Out"
+            titleColor="#EF4444"
+            onPress={handleSignOut}
+            isLast
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  )
 }

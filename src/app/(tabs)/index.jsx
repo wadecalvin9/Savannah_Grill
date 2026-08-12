@@ -8,6 +8,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Cartbutton from '../../../components/Cartbutton'
@@ -16,6 +17,7 @@ import { images, offers } from '../../../constants/index'
 import { getCategories, getMenu } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 import LocationModal from '../../../components/LocationModal'
+import WebFooter from '../../../components/WebFooter'
 
 export default function Index() {
     const { user, deliveryLocation } = useGlobalContext()
@@ -24,7 +26,7 @@ export default function Index() {
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isLocationModalVisible, setIsLocationModalVisible] = useState(false)
-
+    const isWeb = Platform.OS === 'web'
 
     const fetchData = async (categoryId = null) => {
         setIsLoading(true)
@@ -67,7 +69,7 @@ export default function Index() {
                 data={menuItems}
                 keyExtractor={(item) => item.$id}
                 numColumns={2}
-                contentContainerStyle={{ paddingBottom: 120, paddingTop: 8 }}
+                contentContainerStyle={{ paddingBottom: isWeb ? 10 : 120, paddingTop: 8 }}
                 columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 12 }}
                 renderItem={({ item }) => (
                     <View style={{ flex: 1, maxWidth: '50%', paddingTop: 40 }}>
@@ -113,7 +115,7 @@ export default function Index() {
                                     <Image source={images.arrowDown} style={{ width: 10, height: 10 }} resizeMode="contain" tintColor="#1C1C2E" />
                                 </TouchableOpacity>
                             </View>
-                            <Cartbutton />
+                            {/*<Cartbutton />*/}
                         </View>
 
                         {/* ── SEARCH BAR ── */}
@@ -243,6 +245,7 @@ export default function Index() {
                         </View>
                     </View>
                 )}
+                ListFooterComponent={isWeb ? <WebFooter /> : null}
             />
             <LocationModal
                 visible={isLocationModalVisible}
