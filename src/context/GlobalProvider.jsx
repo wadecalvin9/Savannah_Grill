@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+
+import { Alert, View, Text, Platform } from 'react-native';
 import {
     acceptDelivery,
     createOrder,
@@ -8,9 +10,11 @@ import {
     getReadyOrders,
     getRiderDeliveries,
     updateOrderStatusDB,
+    signOut
 } from '../../lib/appwrite';
 
 const GlobalContext = createContext();
+
 export const useGlobalContext = () => useContext(GlobalContext);
 
 const POLL_INTERVAL_MS = 12000; // refresh every 12 seconds
@@ -31,6 +35,14 @@ const GlobalProvider = ({ children }) => {
     const [riderHistory, setRiderHistory] = useState([]);
     const [activeDelivery, setActiveDelivery] = useState(null);
 
+    //Toast state.
+    const [toast, setToast] = useState(null) // { message: string }
+
+    const showToast = (message, duration = 2000) => {
+        setToast({ message })
+        setTimeout(() => setToast(null), duration)
+    }
+    
     const pollRef = useRef(null);
 
     // ── Auth ──────────────────────────────────────────────
@@ -38,6 +50,30 @@ const GlobalProvider = ({ children }) => {
         setIsLoading(true);
         try {
             const res = await getCurrentUser();
+
+            if (res?.missingProfile) {
+                // Auth user exists but database document was deleted
+                Alert.alert(
+                    'Account Incomplete',
+                    'Your account exists but the profile data is missing. Please contact support or sign up again with a different email.',
+                    [
+                        {
+                            text: 'Sign Out',
+                            onPress: async () => {
+                                try { await signOut(); } catch (_) {}
+                                setIsLoggedIn(false);
+                                setUser(null);
+                                setUserRole('customer');
+                            }
+                        }
+                    ]
+                );
+                setIsLoggedIn(false);
+                setUser(null);
+                setUserRole('customer');
+                return;
+            }
+
             if (res) {
                 setIsLoggedIn(true);
                 setUser(res);
@@ -292,6 +328,8 @@ const GlobalProvider = ({ children }) => {
                 removeFromCart,
                 updateQuantity,
                 clearCart,
+                toast,
+                showToast,
                 totalCartItems,
                 totalCartPrice,
                 orders,
@@ -309,6 +347,35 @@ const GlobalProvider = ({ children }) => {
             }}
         >
             {children}
+
+            {/* Global Toast */}
+            {toast && (
+                <View
+                    pointerEvents="none"
+                    style={{
+                        position: 'absolute',
+                        bottom: Platform.os === 'web' ? 32 : 110,
+                        left: 20,
+                        right: 20,
+                        backgroundColor: '#FE8C00',
+                        paddingVertical: 14,
+                        paddingHorizontal: 20,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        zIndex: 9999,
+                        elevation: 10,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.35,
+                        shadowRadius: 10,
+                        shadowOffset: { width: 0, height: 4 },
+                    }}
+                >
+                    <Text style={{ color: '#FFFFFF', fontFamily: 'QuickSand-Bold', fontSize: 14, letterSpacing: 0.2,}}>
+                        {toast.message}
+                    </Text>
+                </View>
+            )}
+
         </GlobalContext.Provider>
     );
 };

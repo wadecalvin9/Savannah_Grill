@@ -23,6 +23,7 @@ export default function Cart() {
         totalCartPrice,
         placeOrder,
         deliveryLocation,
+        user,
     } = useGlobalContext()
 
     const [note, setNote] = useState('')
@@ -33,6 +34,20 @@ export default function Cart() {
 
     const handleCheckout = () => {
         if (cartItems.length === 0) return
+
+        // Guest check – show friendly message instead of Appwrite error
+        if (!user) {
+            Alert.alert(
+                'Sign in required',
+                'Please sign in to place an order.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Sign In', onPress: () => router.push('/sign-in') },
+                ]
+            )
+            return
+        }
+
 
         setIsPlacingOrder(true)
         Alert.alert(

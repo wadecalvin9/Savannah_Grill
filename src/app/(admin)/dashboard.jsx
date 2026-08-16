@@ -207,7 +207,7 @@ export default function AdminDashboard() {
                         description="Add new menu item with pricing & image"
                         icon={images.plus}
                         color="#FE8C00"
-                        onPress={() => router.push('/admin/add-product')}
+                        onPress={() => router.push('/(admin)/add-product')}
                     />
 
                     <ActionCard
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                         description="Edit prices, update details, or delete items"
                         icon={images.pencil}
                         color="#3B82F6"
-                        onPress={() => router.push('/admin/products')}
+                        onPress={() => router.push('/(admin)/products')}
                     />
 
                     <ActionCard
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
                         description="View live orders and update fulfillment status"
                         icon={images.clock}
                         color="#10B981"
-                        onPress={() => router.push('/admin/orders')}
+                        onPress={() => router.push('/(admin)/orders')}
                     />
 
                     <ActionCard
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                         description="Promote users to riders or admin roles"
                         icon={images.person}
                         color="#8B5CF6"
-                        onPress={() => router.push('/admin/users')}
+                        onPress={() => router.push('/(admin)/users')}
                     />
                 </View>
 

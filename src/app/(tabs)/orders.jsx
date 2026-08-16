@@ -1,7 +1,7 @@
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
-    ActivityIndicator,
+    Alert,
     FlatList,
     Image,
     Text,
@@ -27,9 +27,10 @@ const getStatusStyle = (status) => {
 }
 
 const isActive = (status) => !['Completed', 'Cancelled'].includes(status)
+const canCancel = (status) => status === 'Pending' || status === 'Preparing'
 
 export default function Orders() {
-    const { myOrders, fetchMyOrders, user } = useGlobalContext()
+    const { myOrders, fetchMyOrders, updateOrderStatus } = useGlobalContext()
     const [filter, setFilter] = useState('All')
     const [refreshing, setRefreshing] = useState(false)
 
@@ -132,6 +133,7 @@ export default function Orders() {
                     renderItem={({ item: order }) => {
                         const style = getStatusStyle(order.status)
                         const active = isActive(order.status)
+
                         return (
                             <View style={{
                                 backgroundColor: '#FFFFFF',
@@ -189,25 +191,63 @@ export default function Orders() {
                                     </View>
                                 ) : null}
 
-                                {/* Track button (only for active orders) */}
-                                {active && (
-                                    <TouchableOpacity
-                                        onPress={() => router.push(`/order-tracking/${order.id}`)}
-                                        style={{
-                                            backgroundColor: '#FE8C00',
-                                            borderRadius: 12,
-                                            paddingVertical: 11,
-                                            alignItems: 'center',
-                                            flexDirection: 'row',
-                                            justifyContent: 'center',
-                                            gap: 8,
-                                        }}
-                                    >
-                                        <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
-                                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
-                                            Track Order
-                                        </Text>
-                                    </TouchableOpacity>
+                                {/* Action buttons */}
+                                {(active || canCancel(order.status)) && (
+                                    <View style={{ gap: 8 }}>
+                                        {active && (
+                                            <TouchableOpacity
+                                                onPress={() => router.push(`/order-tracking/${order.id}`)}
+                                                style={{
+                                                    backgroundColor: '#FE8C00',
+                                                    borderRadius: 12,
+                                                    paddingVertical: 11,
+                                                    alignItems: 'center',
+                                                    flexDirection: 'row',
+                                                    justifyContent: 'center',
+                                                    gap: 8,
+                                                }}
+                                            >
+                                                <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
+                                                <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                    Track Order
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                        {canCancel(order.status) && (
+                                            <TouchableOpacity
+                                                onPress={() => {
+                                                    Alert.alert(
+                                                        'Cancel Order',
+                                                        'Are you sure you want to cancel this order?',
+                                                        [
+                                                            { text: 'No', style: 'cancel' },
+                                                            {
+                                                                text: 'Yes, Cancel',
+                                                                style: 'destructive',
+                                                                onPress: async () => {
+                                                                    await updateOrderStatus(order.id, 'Cancelled')
+                                                                    fetchMyOrders()
+                                                                },
+                                                            },
+                                                        ]
+                                                    )
+                                                }}
+                                                style={{
+                                                    backgroundColor: '#FFFFFF',
+                                                    borderRadius: 12,
+                                                    paddingVertical: 11,
+                                                    alignItems: 'center',
+                                                    borderWidth: 1,
+                                                    borderColor: '#FECACA',
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>
+                                                    Cancel Order
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                 )}
                             </View>
                         )

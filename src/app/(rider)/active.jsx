@@ -5,6 +5,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Platform,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -16,12 +17,13 @@ import { images } from '../../../constants'
 import { updateOrderRiderLocation } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
+const isWeb = Platform.OS === 'web'
+
 export default function ActiveDelivery() {
     const { activeDelivery, completeRiderDelivery, fetchRiderData } = useGlobalContext()
     const [completing, setCompleting] = useState(false)
     const [riderCoords, setRiderCoords] = useState(null)
 
-    // Broadcast Rider GPS Location to Appwrite in real-time
     useEffect(() => {
         if (!activeDelivery?.id) return
 
@@ -112,17 +114,32 @@ export default function ActiveDelivery() {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
             {/* Header */}
             <View style={{
-                paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14,
-                backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+                paddingHorizontal: isWeb ? 32 : 20,
+                paddingTop: isWeb ? 20 : 16,
+                paddingBottom: 14,
+                backgroundColor: '#FFFFFF',
+                borderBottomWidth: 1,
+                borderBottomColor: '#F3F4F6',
             }}>
-                <Text style={{ fontSize: 22, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>Active Delivery</Text>
-                <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#FE8C00' }}>
-                    #{activeDelivery.id?.slice(-8).toUpperCase()} · Out for Delivery
-                </Text>
+                <View style={{ maxWidth: isWeb ? 900 : undefined, width: '100%', alignSelf: isWeb ? 'center' : undefined }}>
+                    <Text style={{ fontSize: 22, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>Active Delivery</Text>
+                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#FE8C00' }}>
+                        #{activeDelivery.id?.slice(-8).toUpperCase()} · Out for Delivery
+                    </Text>
+                </View>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 140 }} showsVerticalScrollIndicator={false}>
-
+            <ScrollView
+                contentContainerStyle={{
+                    paddingHorizontal: isWeb ? 32 : 20,
+                    paddingTop: 20,
+                    paddingBottom: isWeb ? 40 : 140,
+                    maxWidth: isWeb ? 900 : undefined,
+                    width: isWeb ? '100%' : undefined,
+                    alignSelf: isWeb ? 'center' : undefined,
+                }}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Delivery Destination */}
                 <View style={{
                     backgroundColor: '#FFF7ED', borderRadius: 20, padding: 18,
@@ -165,7 +182,7 @@ export default function ActiveDelivery() {
                         riderLat={riderCoords?.lat || activeDelivery.riderLat}
                         riderLng={riderCoords?.lng || activeDelivery.riderLng}
                         destinationName={activeDelivery.address}
-                        height={240}
+                        height={isWeb ? 320 : 240}
                     />
                 </View>
 
@@ -201,7 +218,6 @@ export default function ActiveDelivery() {
                         </Text>
                     </View>
                 </View>
-
 
                 <TouchableOpacity
                     onPress={handleComplete}
