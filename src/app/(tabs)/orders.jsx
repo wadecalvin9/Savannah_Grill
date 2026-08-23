@@ -20,12 +20,14 @@ const getStatusStyle = (status) => {
         case 'Preparing': return { bg: '#FFF7ED', text: '#F97316', dot: '#F97316' }
         case 'Ready': return { bg: '#ECFDF5', text: '#10B981', dot: '#10B981' }
         case 'Out for Delivery': return { bg: '#F5F3FF', text: '#8B5CF6', dot: '#8B5CF6' }
+        case 'Delivered': return { bg: '#ECFDF5', text: '#059669', dot: '#059669' }   // new
         case 'Completed': return { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' }
         case 'Cancelled': return { bg: '#FEF2F2', text: '#EF4444', dot: '#EF4444' }
         default: return { bg: '#F3F4F6', text: '#6B7280', dot: '#6B7280' }
     }
 }
 
+// Delivered is still considered active until the customer confirms
 const isActive = (status) => !['Completed', 'Cancelled'].includes(status)
 const canCancel = (status) => status === 'Pending' || status === 'Preparing'
 
@@ -33,6 +35,7 @@ export default function Orders() {
     const { myOrders, fetchMyOrders, updateOrderStatus } = useGlobalContext()
     const [filter, setFilter] = useState('All')
     const [refreshing, setRefreshing] = useState(false)
+    const [confirmingId, setConfirmingId] = useState(null)
 
     useEffect(() => {
         fetchMyOrders()
@@ -42,6 +45,30 @@ export default function Orders() {
         setRefreshing(true)
         await fetchMyOrders()
         setRefreshing(false)
+    }
+
+    const handleConfirmReceived = (order) => {
+        Alert.alert(
+            'Confirm Receipt',
+            'Have you received this order?',
+            [
+                { text: 'Not yet', style: 'cancel' },
+                {
+                    text: 'Yes, Received',
+                    onPress: async () => {
+                        setConfirmingId(order.id)
+                        try {
+                            await updateOrderStatus(order.id, 'Completed')
+                            await fetchMyOrders()
+                        } catch (e) {
+                            Alert.alert('Error', 'Could not confirm. Please try again.')
+                        } finally {
+                            setConfirmingId(null)
+                        }
+                    },
+                },
+            ]
+        )
     }
 
     const filtered = myOrders.filter(o => {
@@ -157,7 +184,6 @@ export default function Orders() {
                                             {order.items.length} item{order.items.length !== 1 ? 's' : ''} • KES {order.totalPrice.toLocaleString()}
                                         </Text>
                                     </View>
-                                    {/* Status badge */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: style.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, gap: 5 }}>
                                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: style.dot }} />
                                         <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: style.text }}>
@@ -182,7 +208,7 @@ export default function Orders() {
                                 ) : null}
 
                                 {/* Rider info */}
-                                {order.riderName ? (
+                                {order.riderName && order.status === 'Out for Delivery' ? (
                                     <View style={{ backgroundColor: '#FFF7ED', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                         <Image source={images.location} style={{ width: 13, height: 13 }} resizeMode="contain" tintColor="#FE8C00" />
                                         <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>
@@ -191,64 +217,121 @@ export default function Orders() {
                                     </View>
                                 ) : null}
 
-                                {/* Action buttons */}
-                                {(active || canCancel(order.status)) && (
-                                    <View style={{ gap: 8 }}>
-                                        {active && (
-                                            <TouchableOpacity
-                                                onPress={() => router.push(`/order-tracking/${order.id}`)}
-                                                style={{
-                                                    backgroundColor: '#FE8C00',
-                                                    borderRadius: 12,
-                                                    paddingVertical: 11,
-                                                    alignItems: 'center',
-                                                    flexDirection: 'row',
-                                                    justifyContent: 'center',
-                                                    gap: 8,
-                                                }}
-                                            >
-                                                <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
-                                                <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
-                                                    Track Order
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-
-                                        {canCancel(order.status) && (
-                                            <TouchableOpacity
-                                                onPress={() => {
-                                                    Alert.alert(
-                                                        'Cancel Order',
-                                                        'Are you sure you want to cancel this order?',
-                                                        [
-                                                            { text: 'No', style: 'cancel' },
-                                                            {
-                                                                text: 'Yes, Cancel',
-                                                                style: 'destructive',
-                                                                onPress: async () => {
-                                                                    await updateOrderStatus(order.id, 'Cancelled')
-                                                                    fetchMyOrders()
-                                                                },
-                                                            },
-                                                        ]
-                                                    )
-                                                }}
-                                                style={{
-                                                    backgroundColor: '#FFFFFF',
-                                                    borderRadius: 12,
-                                                    paddingVertical: 11,
-                                                    alignItems: 'center',
-                                                    borderWidth: 1,
-                                                    borderColor: '#FECACA',
-                                                }}
-                                            >
-                                                <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>
-                                                    Cancel Order
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
+                                {/* Waiting for customer confirmation */}
+                                {order.status === 'Delivered' && (
+                                    <View style={{
+                                        backgroundColor: '#ECFDF5',
+                                        borderRadius: 10,
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 8,
+                                        marginBottom: 12,
+                                        borderWidth: 1,
+                                        borderColor: '#A7F3D0',
+                                    }}>
+                                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#059669' }}>
+                                            Rider marked this as delivered. Please confirm you received it.
+                                        </Text>
                                     </View>
                                 )}
+
+                                {/* Delivery confirmation code */}
+                                {order.status === 'Out for Delivery' && order.confirmation_code ? (
+                                <View style={{
+                                    backgroundColor: '#FEF3C7',
+                                    borderRadius: 12,
+                                    padding: 14,
+                                    marginBottom: 12,
+                                    borderWidth: 1,
+                                    borderColor: '#FCD34D',
+                                }}>
+                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#92400E', marginBottom: 4 }}>
+                                    Your delivery code
+                                    </Text>
+                                    <Text style={{ fontSize: 28, fontFamily: 'QuickSand-Bold', color: '#92400E', letterSpacing: 4 }}>
+                                    {order.confirmation_code}
+                                    </Text>
+                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#A16207', marginTop: 4 }}>
+                                    Show this code to the rider when they arrive.
+                                    </Text>
+                                </View>
+                                ) : null}
+
+                                {/* Action buttons */}
+                                <View style={{ gap: 8 }}>
+                                    {/* Track while still in transit */}
+                                    {active && order.status !== 'Delivered' && (
+                                        <TouchableOpacity
+                                            onPress={() => router.push(`/order-tracking/${order.id}`)}
+                                            style={{
+                                                backgroundColor: '#FE8C00',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                flexDirection: 'row',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                Track Order
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {/* Customer confirmation */}
+                                    {order.status === 'Delivered' && (
+                                        <TouchableOpacity
+                                            onPress={() => handleConfirmReceived(order)}
+                                            disabled={confirmingId === order.id}
+                                            style={{
+                                                backgroundColor: '#10B981',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                opacity: confirmingId === order.id ? 0.7 : 1,
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                {confirmingId === order.id ? 'Confirming…' : 'Confirm Received'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {canCancel(order.status) && (
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                Alert.alert(
+                                                    'Cancel Order',
+                                                    'Are you sure you want to cancel this order?',
+                                                    [
+                                                        { text: 'No', style: 'cancel' },
+                                                        {
+                                                            text: 'Yes, Cancel',
+                                                            style: 'destructive',
+                                                            onPress: async () => {
+                                                                await updateOrderStatus(order.id, 'Cancelled')
+                                                                fetchMyOrders()
+                                                            },
+                                                        },
+                                                    ]
+                                                )
+                                            }}
+                                            style={{
+                                                backgroundColor: '#FFFFFF',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                borderWidth: 1,
+                                                borderColor: '#FECACA',
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>
+                                                Cancel Order
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         )
                     }}

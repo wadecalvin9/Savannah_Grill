@@ -9,7 +9,11 @@ import {
     getOrders,
     getReadyOrders,
     getRiderDeliveries,
+    generateDeliveryCode,
+    setOrderConfirmationCode,
+    verifyDeliveryCodeAndComplete,
     updateOrderStatusDB,
+
     signOut
 } from '../../lib/appwrite';
 
@@ -25,6 +29,7 @@ const GlobalProvider = ({ children }) => {
     const [userRole, setUserRole] = useState('customer');
     const [isLoading, setIsLoading] = useState(true);
     const [cartItems, setCartItems] = useState([]);
+    const [pendingConfirmations, setPendingConfirmations] = useState([]);
 
     const [deliveryLocation, setDeliveryLocation] = useState('Karen, Nairobi');
 
@@ -119,6 +124,7 @@ const GlobalProvider = ({ children }) => {
 
     const fetchRiderData = async () => {
         if (!user?.$id) return;
+
         try {
             const ready = await getReadyOrders();
             setRiderOrders(ready || []);
@@ -126,14 +132,18 @@ const GlobalProvider = ({ children }) => {
             console.warn('fetchRiderData (ready orders) error:', error?.message);
         }
 
-
         try {
             const history = await getRiderDeliveries(user.$id);
             setRiderHistory(history || []);
+
+            // Currently delivering
             const active = (history || []).find(o => o.status === 'Out for Delivery');
             setActiveDelivery(active || null);
-        } catch (error) {
 
+            // Waiting for customer to confirm receipt
+            const pending = (history || []).filter(o => o.status === 'Delivered');
+            setPendingConfirmations(pending);
+        } catch (error) {
             console.warn('fetchRiderData (history) skipped — add rider_id attribute to orders collection:', error?.message);
         }
     };
@@ -295,20 +305,41 @@ const GlobalProvider = ({ children }) => {
     };
 
 
-    const completeRiderDelivery = async (orderId) => {
+    // Called when rider taps “I’ve arrived – Get code”
+    const prepareDeliveryCode = async (orderId) => {
+    try {
+        const code = generateDeliveryCode()
+        await setOrderConfirmationCode(orderId, code)
+        await fetchRiderData()
+        return code
+    } catch (error) {
+        console.error('prepareDeliveryCode error:', error)
+        throw error
+    }
+    }
+
+    // Called when rider submits the code the customer showed them
+    const verifyAndCompleteDelivery = async (orderId, enteredCode) => {
         try {
-            await updateOrderStatusDB(orderId, 'Completed');
+            await verifyDeliveryCodeAndComplete(orderId, enteredCode)
+
             const update = (o) =>
-                o.id === orderId ? { ...o, status: 'Completed' } : o;
-            setActiveDelivery(null);
-            setOrders(prev => prev.map(update));
-            setMyOrders(prev => prev.map(update));
-            setRiderHistory(prev => prev.map(update));
-        } catch (error) {
-            console.error('completeRiderDelivery error:', error);
-            throw error;
+            o.id === orderId || o.$id === orderId
+                ? { ...o, status: 'Completed', confirmation_code: '', code_generated_at: '' }
+                : o
+
+            setActiveDelivery(null)
+            setPendingConfirmations(prev => prev.filter(o => o.id !== orderId))
+            setOrders(prev => prev.map(update))
+            setMyOrders(prev => prev.map(update))
+            setRiderHistory(prev => prev.map(update))
+
+            await fetchRiderData()
+        }   catch (error) {
+            console.error('verifyAndCompleteDelivery error:', error)
+            throw error
         }
-    };
+    }
 
     return (
         <GlobalContext.Provider
@@ -343,7 +374,9 @@ const GlobalProvider = ({ children }) => {
                 fetchMyOrders,
                 fetchRiderData,
                 acceptRiderDelivery,
-                completeRiderDelivery,
+                prepareDeliveryCode,
+                verifyAndCompleteDelivery,
+                pendingConfirmations,
             }}
         >
             {children}
