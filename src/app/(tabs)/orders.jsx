@@ -1,7 +1,11 @@
 import { router } from 'expo-router'
+import { Platform } from 'react-native'
+import { usePaystack } from 'react-native-paystack-webview'
+import {markOrderAsPaid,generatePaystackReference, isPaymentWindowOpen, markPaymentExpired,} from '../../../lib/appwrite'         
+import { launchPaystackPayment } from '../../../lib/paystack' 
 import { useEffect, useState } from 'react'
 import {
-    ActivityIndicator,
+    Alert,
     FlatList,
     Image,
     Text,
@@ -12,6 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
+
+
 const FILTERS = ['All', 'Active', 'Completed', 'Cancelled']
 
 const getStatusStyle = (status) => {
@@ -20,27 +26,108 @@ const getStatusStyle = (status) => {
         case 'Preparing': return { bg: '#FFF7ED', text: '#F97316', dot: '#F97316' }
         case 'Ready': return { bg: '#ECFDF5', text: '#10B981', dot: '#10B981' }
         case 'Out for Delivery': return { bg: '#F5F3FF', text: '#8B5CF6', dot: '#8B5CF6' }
+        case 'Delivered': return { bg: '#ECFDF5', text: '#059669', dot: '#059669' }   // new
         case 'Completed': return { bg: '#F0FDF4', text: '#16A34A', dot: '#16A34A' }
         case 'Cancelled': return { bg: '#FEF2F2', text: '#EF4444', dot: '#EF4444' }
         default: return { bg: '#F3F4F6', text: '#6B7280', dot: '#6B7280' }
     }
 }
 
+// Delivered is still considered active until the customer confirms
 const isActive = (status) => !['Completed', 'Cancelled'].includes(status)
+const canCancel = (status) => status === 'Pending' || status === 'Preparing'
 
 export default function Orders() {
-    const { myOrders, fetchMyOrders, user } = useGlobalContext()
+    const { myOrders, fetchMyOrders, updateOrderStatus, user } = useGlobalContext()
     const [filter, setFilter] = useState('All')
     const [refreshing, setRefreshing] = useState(false)
+    const [confirmingId, setConfirmingId] = useState(null)
+    const { popup } = usePaystack()
+    const [payingId, setPayingId] = useState(null)
 
+    
     useEffect(() => {
-        fetchMyOrders()
-    }, [])
+        if (user) {
+            fetchMyOrders()
+        }
+    }, [user])
+    // Auto-expire old unpaid Paystack orders
+    useEffect(() => {
+    if (!myOrders || myOrders.length === 0) return
 
+    myOrders.forEach(async (order) => {
+        if (
+        order.payment_method === 'paystack' &&
+        order.payment_status === 'pending' &&
+        !isPaymentWindowOpen(order)
+        ) {
+        try {
+            await markPaymentExpired(order.id)
+            // Refresh so the UI immediately shows the expired message
+            await fetchMyOrders()
+        } catch (_) {
+            // silently ignore – will try again next time
+        }
+        }
+    })
+    }, [myOrders])
+
+    // Guest / signed-out protection
+        if (!user) {
+            return (
+                <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
+                        <Text style={{ fontSize: 18, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', textAlign: 'center' }}>
+                        Sign in to see your orders
+                        </Text>
+                        <TouchableOpacity
+                        onPress={() => router.push('/sign-in')}
+                        style={{
+                            marginTop: 20,
+                            backgroundColor: '#FE8C00',
+                            borderRadius: 99,
+                            paddingHorizontal: 28,
+                            paddingVertical: 14,
+                        }}
+                        >
+                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                            Sign In
+                        </Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            );
+        }    
+    
+    
     const handleRefresh = async () => {
         setRefreshing(true)
         await fetchMyOrders()
         setRefreshing(false)
+    }
+
+    const handleConfirmReceived = (order) => {
+        Alert.alert(
+            'Confirm Receipt',
+            'Have you received this order?',
+            [
+                { text: 'Not yet', style: 'cancel' },
+                {
+                    text: 'Yes, Received',
+                    onPress: async () => {
+                        setConfirmingId(order.id)
+                        try {
+                            await updateOrderStatus(order.id, 'Completed')
+                            await fetchMyOrders()
+                        } catch (e) {
+                            Alert.alert('Error', 'Could not confirm. Please try again.')
+                        } finally {
+                            setConfirmingId(null)
+                        }
+                    },
+                },
+            ]
+        )
     }
 
     const filtered = myOrders.filter(o => {
@@ -50,6 +137,56 @@ export default function Orders() {
         if (filter === 'Cancelled') return o.status === 'Cancelled'
         return true
     })
+
+    const handlePayNow = async (order) => {
+    if (!order?.id) return
+
+    setPayingId(order.id)
+
+    const reference = generatePaystackReference(order.id)
+    const amountCents = order.amount || Math.round((order.totalPrice || 0) * 100)
+    const publicKey = process.env.EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY
+
+    try {
+        await launchPaystackPayment({
+            popup,
+            publicKey,
+            email: user?.email || 'customer@savannahgrill.com',
+            amount: amountCents,
+            reference,
+            currency: 'KES',
+            metadata: {
+                order_id: order.id,
+                customer_name: order.customerName || '',
+            },
+            onSuccess: async (res) => {
+                try {
+                await markOrderAsPaid(order.id, {
+                    paystackReference: res?.reference || reference,
+                    paymentChannel: res?.channel || 'paystack',
+                })
+                await fetchMyOrders()
+                } catch (err) {
+                console.error('markOrderAsPaid error:', err)
+                Alert.alert('Payment received', 'Status will update shortly.')
+                } finally {
+                setPayingId(null)
+                }
+            },
+            onCancel: () => {
+                setPayingId(null)
+                Alert.alert(
+                'Payment cancelled',
+                'You can try again anytime from this screen.'
+                )
+            },
+            })
+        } catch (e) {
+            console.error(e)
+            setPayingId(null)
+            Alert.alert('Error', 'Could not start payment. Please try again.')
+        }
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
@@ -132,6 +269,7 @@ export default function Orders() {
                     renderItem={({ item: order }) => {
                         const style = getStatusStyle(order.status)
                         const active = isActive(order.status)
+
                         return (
                             <View style={{
                                 backgroundColor: '#FFFFFF',
@@ -155,7 +293,6 @@ export default function Orders() {
                                             {order.items.length} item{order.items.length !== 1 ? 's' : ''} • KES {order.totalPrice.toLocaleString()}
                                         </Text>
                                     </View>
-                                    {/* Status badge */}
                                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: style.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, gap: 5 }}>
                                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: style.dot }} />
                                         <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: style.text }}>
@@ -180,7 +317,7 @@ export default function Orders() {
                                 ) : null}
 
                                 {/* Rider info */}
-                                {order.riderName ? (
+                                {order.riderName && order.status === 'Out for Delivery' ? (
                                     <View style={{ backgroundColor: '#FFF7ED', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                         <Image source={images.location} style={{ width: 13, height: 13 }} resizeMode="contain" tintColor="#FE8C00" />
                                         <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#F97316' }}>
@@ -189,26 +326,188 @@ export default function Orders() {
                                     </View>
                                 ) : null}
 
-                                {/* Track button (only for active orders) */}
-                                {active && (
-                                    <TouchableOpacity
-                                        onPress={() => router.push(`/order-tracking/${order.id}`)}
-                                        style={{
-                                            backgroundColor: '#FE8C00',
-                                            borderRadius: 12,
-                                            paddingVertical: 11,
-                                            alignItems: 'center',
-                                            flexDirection: 'row',
-                                            justifyContent: 'center',
-                                            gap: 8,
-                                        }}
-                                    >
-                                        <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
-                                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
-                                            Track Order
+                                {/* Waiting for customer confirmation */}
+                                {order.status === 'Delivered' && (
+                                    <View style={{
+                                        backgroundColor: '#ECFDF5',
+                                        borderRadius: 10,
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 8,
+                                        marginBottom: 12,
+                                        borderWidth: 1,
+                                        borderColor: '#A7F3D0',
+                                    }}>
+                                        <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#059669' }}>
+                                            Rider marked this as delivered. Please confirm you received it.
                                         </Text>
-                                    </TouchableOpacity>
+                                    </View>
                                 )}
+
+                                {/* Delivery confirmation code */}
+                                {order.status === 'Out for Delivery' && order.confirmation_code ? (
+                                <View style={{
+                                    backgroundColor: '#FEF3C7',
+                                    borderRadius: 12,
+                                    padding: 14,
+                                    marginBottom: 12,
+                                    borderWidth: 1,
+                                    borderColor: '#FCD34D',
+                                }}>
+                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#92400E', marginBottom: 4 }}>
+                                    Your delivery code
+                                    </Text>
+                                    <Text style={{ fontSize: 28, fontFamily: 'QuickSand-Bold', color: '#92400E', letterSpacing: 4 }}>
+                                    {order.confirmation_code}
+                                    </Text>
+                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#A16207', marginTop: 4 }}>
+                                    Show this code to the rider when they arrive.
+                                    </Text>
+                                </View>
+                                ) : null}
+
+                                {/*Payment Status*/}
+                                {order.payment_status && (
+                                <Text style={{
+                                    fontSize: 11,
+                                    fontFamily: 'QuickSand-Bold',
+                                    color: order.payment_status === 'paid' ? '#16A34A' : '#9CA3AF',
+                                    marginTop: 4,
+                                    marginBottom: 4,
+                                }}>
+                                    {order.payment_status === 'paid'
+                                    ? 'Paid'
+                                    : order.payment_status === 'awaiting_collection'
+                                        ? 'Pay on delivery'
+                                        : order.payment_status}
+                                </Text>
+                                )}
+
+                                {/* Action buttons */}
+                                <View style={{ gap: 8 }}>
+
+                                    {/* Pay now – only for pending Paystack orders */}
+                                    {order.payment_method === 'paystack' &&
+                                        order.payment_status === 'pending' &&
+                                        isPaymentWindowOpen(order) && (
+                                            <TouchableOpacity
+                                            onPress={() => handlePayNow(order)}
+                                            disabled={payingId === order.id}
+                                            activeOpacity={0.85}
+                                            style={{
+                                                backgroundColor: '#FE8C00',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                opacity: payingId === order.id ? 0.7 : 1,
+                                            }}
+                                            >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                {payingId === order.id ? 'Opening Paystack…' : 'Pay now'}
+                                            </Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                    {/* Expired message */}
+                                    {order.payment_method === 'paystack' &&
+                                    (order.payment_status === 'expired' ||
+                                        (order.payment_status === 'pending' && !isPaymentWindowOpen(order))) && (
+                                        <View
+                                        style={{
+                                            backgroundColor: '#FEF2F2',
+                                            borderRadius: 12,
+                                            paddingVertical: 10,
+                                            paddingHorizontal: 12,
+                                            borderWidth: 1,
+                                            borderColor: '#FECACA',
+                                        }}
+                                        >
+                                        <Text
+                                            style={{
+                                            fontSize: 13,
+                                            fontFamily: 'QuickSand-Bold',
+                                            color: '#DC2626',
+                                            textAlign: 'center',
+                                            }}
+                                        >
+                                            Payment window expired – please place a new order
+                                        </Text>
+                                        </View>
+                                    )}    
+
+                                    {/* Track while still in transit */}
+                                    {active && order.status !== 'Delivered' && (
+                                        <TouchableOpacity
+                                            onPress={() => router.push(`/order-tracking/${order.id}`)}
+                                            style={{
+                                                backgroundColor: '#FE8C00',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                flexDirection: 'row',
+                                                justifyContent: 'center',
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FFF" />
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                Track Order
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {/* Customer confirmation */}
+                                    {order.status === 'Delivered' && (
+                                        <TouchableOpacity
+                                            onPress={() => handleConfirmReceived(order)}
+                                            disabled={confirmingId === order.id}
+                                            style={{
+                                                backgroundColor: '#10B981',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                opacity: confirmingId === order.id ? 0.7 : 1,
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                {confirmingId === order.id ? 'Confirming…' : 'Confirm Received'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    {canCancel(order.status) && (
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                Alert.alert(
+                                                    'Cancel Order',
+                                                    'Are you sure you want to cancel this order?',
+                                                    [
+                                                        { text: 'No', style: 'cancel' },
+                                                        {
+                                                            text: 'Yes, Cancel',
+                                                            style: 'destructive',
+                                                            onPress: async () => {
+                                                                await updateOrderStatus(order.id, 'Cancelled')
+                                                                fetchMyOrders()
+                                                            },
+                                                        },
+                                                    ]
+                                                )
+                                            }}
+                                            style={{
+                                                backgroundColor: '#FFFFFF',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                borderWidth: 1,
+                                                borderColor: '#FECACA',
+                                            }}
+                                        >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#EF4444' }}>
+                                                Cancel Order
+                                            </Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         )
                     }}

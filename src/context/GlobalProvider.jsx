@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+
+import { Alert, View, Text, Platform } from 'react-native';
 import {
     acceptDelivery,
     createOrder,
@@ -7,10 +9,19 @@ import {
     getOrders,
     getReadyOrders,
     getRiderDeliveries,
+    generateDeliveryCode,
+    setOrderConfirmationCode,
+    verifyDeliveryCodeAndComplete,
     updateOrderStatusDB,
+    markOrderAsPaid,
+    markPaymentExpired,        
+    isPaymentWindowOpen,
+    PAYMENT_METHODS,
+    signOut
 } from '../../lib/appwrite';
 
 const GlobalContext = createContext();
+
 export const useGlobalContext = () => useContext(GlobalContext);
 
 const POLL_INTERVAL_MS = 12000; // refresh every 12 seconds
@@ -21,6 +32,7 @@ const GlobalProvider = ({ children }) => {
     const [userRole, setUserRole] = useState('customer');
     const [isLoading, setIsLoading] = useState(true);
     const [cartItems, setCartItems] = useState([]);
+    const [pendingConfirmations, setPendingConfirmations] = useState([]);
 
     const [deliveryLocation, setDeliveryLocation] = useState('Karen, Nairobi');
 
@@ -31,6 +43,14 @@ const GlobalProvider = ({ children }) => {
     const [riderHistory, setRiderHistory] = useState([]);
     const [activeDelivery, setActiveDelivery] = useState(null);
 
+    //Toast state.
+    const [toast, setToast] = useState(null) // { message: string }
+
+    const showToast = (message, duration = 2000) => {
+        setToast({ message })
+        setTimeout(() => setToast(null), duration)
+    }
+    
     const pollRef = useRef(null);
 
     // ── Auth ──────────────────────────────────────────────
@@ -38,6 +58,30 @@ const GlobalProvider = ({ children }) => {
         setIsLoading(true);
         try {
             const res = await getCurrentUser();
+
+            if (res?.missingProfile) {
+                // Auth user exists but database document was deleted
+                Alert.alert(
+                    'Account Incomplete',
+                    'Your account exists but the profile data is missing. Please contact support or sign up again with a different email.',
+                    [
+                        {
+                            text: 'Sign Out',
+                            onPress: async () => {
+                                try { await signOut(); } catch (_) {}
+                                setIsLoggedIn(false);
+                                setUser(null);
+                                setUserRole('customer');
+                            }
+                        }
+                    ]
+                );
+                setIsLoggedIn(false);
+                setUser(null);
+                setUserRole('customer');
+                return;
+            }
+
             if (res) {
                 setIsLoggedIn(true);
                 setUser(res);
@@ -72,10 +116,37 @@ const GlobalProvider = ({ children }) => {
     };
 
     const fetchMyOrders = async () => {
-        if (!user?.$id) return;
+        if (!user?.$id) {
+            setMyOrders([]);
+            return;
+        }
+
         try {
             const result = await getMyOrders(user.$id);
-            setMyOrders(result || []);
+            const orders = result || [];
+
+            // Auto-expire old unpaid Paystack orders
+            const expirePromises = orders
+                .filter(
+                    (order) =>
+                        order.payment_method === 'paystack' &&
+                        order.payment_status === 'pending' &&
+                        !isPaymentWindowOpen(order)
+                )
+                .map((order) =>
+                    markPaymentExpired(order.id).catch(() => {
+                        // ignore individual failures
+                    })
+                );
+
+            if (expirePromises.length > 0) {
+                await Promise.all(expirePromises);
+                // Fetch again so the UI gets the updated "expired" / Cancelled status
+                const refreshed = await getMyOrders(user.$id);
+                setMyOrders(refreshed || []);
+            } else {
+                setMyOrders(orders);
+            }
         } catch (error) {
             console.warn('fetchMyOrders skipped:', error?.message);
         }
@@ -83,6 +154,7 @@ const GlobalProvider = ({ children }) => {
 
     const fetchRiderData = async () => {
         if (!user?.$id) return;
+
         try {
             const ready = await getReadyOrders();
             setRiderOrders(ready || []);
@@ -90,21 +162,34 @@ const GlobalProvider = ({ children }) => {
             console.warn('fetchRiderData (ready orders) error:', error?.message);
         }
 
-
         try {
             const history = await getRiderDeliveries(user.$id);
             setRiderHistory(history || []);
+
+            // Currently delivering
             const active = (history || []).find(o => o.status === 'Out for Delivery');
             setActiveDelivery(active || null);
-        } catch (error) {
 
+            // Waiting for customer to confirm receipt
+            const pending = (history || []).filter(o => o.status === 'Delivered');
+            setPendingConfirmations(pending);
+        } catch (error) {
             console.warn('fetchRiderData (history) skipped — add rider_id attribute to orders collection:', error?.message);
         }
     };
 
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            // User signed out or is a guest → clear personal data
+            setMyOrders([]);
+            setOrders([]);
+            setRiderOrders([]);
+            setRiderHistory([]);
+            setActiveDelivery(null);
+            setPendingConfirmations([]);    
+            return;
+        }
 
         const role = user.role || 'customer';
 
@@ -180,15 +265,24 @@ const GlobalProvider = ({ children }) => {
     );
 
 
-    const placeOrder = async ({ note, address }) => {
+    const placeOrder = async ({ note, address, paymentMethod = 'cash_on_delivery', amountKes }) => {
         if (cartItems.length === 0) return null;
+
         const items = cartItems.map(ci => ({
             name: ci.item.name,
             quantity: ci.quantity,
             price: ci.item.price,
             image_url: ci.item.image_url,
         }));
-        const totalPrice = totalCartPrice + (totalCartPrice > 1000 ? 0 : 150);
+
+        // Prefer the amount coming from the cart screen (includes delivery fee)
+        const totalPrice = amountKes != null
+            ? amountKes
+            : totalCartPrice + (totalCartPrice > 1000 ? 0 : 150);
+
+        // Decide payment status based on method
+        const isPaystack = paymentMethod === 'paystack';
+        const paymentStatus = isPaystack ? 'pending' : 'awaiting_collection';
 
         try {
             const doc = await createOrder({
@@ -198,6 +292,12 @@ const GlobalProvider = ({ children }) => {
                 note: note || '',
                 items,
                 totalPrice,
+                // Payment fields
+                paymentMethod,
+                paymentStatus,
+                amount: Math.round(totalPrice * 100), // store in cents
+                currency: 'KES',
+                // paystackReference will be added later when we integrate Paystack
             });
 
             const newOrderObj = {
@@ -212,19 +312,24 @@ const GlobalProvider = ({ children }) => {
                 status: 'Pending',
                 riderId: '',
                 riderName: '',
+                // Payment fields for immediate UI
+                payment_method: paymentMethod,
+                payment_status: paymentStatus,
+                amount: Math.round(totalPrice * 100),
+                amountKes: totalPrice,
+                currency: 'KES',
             };
 
             setOrders(prev => [newOrderObj, ...prev]);
             setMyOrders(prev => [newOrderObj, ...prev]);
             clearCart();
             return newOrderObj;
-        } catch (error) {
+        }   catch (error) {
             console.error('Failed to persist order in Appwrite:', error);
-            clearCart();
-            return null;
+            // Do NOT clear the cart on failure so the user can retry
+            throw error;
         }
     };
-
 
     const updateOrderStatus = async (orderId, newStatus) => {
         const update = (o) =>
@@ -259,20 +364,41 @@ const GlobalProvider = ({ children }) => {
     };
 
 
-    const completeRiderDelivery = async (orderId) => {
+    // Called when rider taps “I’ve arrived – Get code”
+    const prepareDeliveryCode = async (orderId) => {
+    try {
+        const code = generateDeliveryCode()
+        await setOrderConfirmationCode(orderId, code)
+        await fetchRiderData()
+        return code
+    } catch (error) {
+        console.error('prepareDeliveryCode error:', error)
+        throw error
+    }
+    }
+
+    // Called when rider submits the code the customer showed them
+    const verifyAndCompleteDelivery = async (orderId, enteredCode) => {
         try {
-            await updateOrderStatusDB(orderId, 'Completed');
+            await verifyDeliveryCodeAndComplete(orderId, enteredCode)
+
             const update = (o) =>
-                o.id === orderId ? { ...o, status: 'Completed' } : o;
-            setActiveDelivery(null);
-            setOrders(prev => prev.map(update));
-            setMyOrders(prev => prev.map(update));
-            setRiderHistory(prev => prev.map(update));
-        } catch (error) {
-            console.error('completeRiderDelivery error:', error);
-            throw error;
+            o.id === orderId || o.$id === orderId
+                ? { ...o, status: 'Completed', confirmation_code: '', code_generated_at: '' }
+                : o
+
+            setActiveDelivery(null)
+            setPendingConfirmations(prev => prev.filter(o => o.id !== orderId))
+            setOrders(prev => prev.map(update))
+            setMyOrders(prev => prev.map(update))
+            setRiderHistory(prev => prev.map(update))
+
+            await fetchRiderData()
+        }   catch (error) {
+            console.error('verifyAndCompleteDelivery error:', error)
+            throw error
         }
-    };
+    }
 
     return (
         <GlobalContext.Provider
@@ -292,6 +418,8 @@ const GlobalProvider = ({ children }) => {
                 removeFromCart,
                 updateQuantity,
                 clearCart,
+                toast,
+                showToast,
                 totalCartItems,
                 totalCartPrice,
                 orders,
@@ -305,10 +433,41 @@ const GlobalProvider = ({ children }) => {
                 fetchMyOrders,
                 fetchRiderData,
                 acceptRiderDelivery,
-                completeRiderDelivery,
+                prepareDeliveryCode,
+                verifyAndCompleteDelivery,
+                pendingConfirmations,
             }}
         >
             {children}
+
+            {/* Global Toast */}
+            {toast && (
+                <View
+                    pointerEvents="none"
+                    style={{
+                        position: 'absolute',
+                        bottom: Platform.os === 'web' ? 32 : 110,
+                        left: 20,
+                        right: 20,
+                        backgroundColor: '#FE8C00',
+                        paddingVertical: 14,
+                        paddingHorizontal: 20,
+                        borderRadius: 14,
+                        alignItems: 'center',
+                        zIndex: 9999,
+                        elevation: 10,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.35,
+                        shadowRadius: 10,
+                        shadowOffset: { width: 0, height: 4 },
+                    }}
+                >
+                    <Text style={{ color: '#FFFFFF', fontFamily: 'QuickSand-Bold', fontSize: 14, letterSpacing: 0.2,}}>
+                        {toast.message}
+                    </Text>
+                </View>
+            )}
+
         </GlobalContext.Provider>
     );
 };
