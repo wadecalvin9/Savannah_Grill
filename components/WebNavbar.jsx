@@ -5,10 +5,10 @@ import { images } from '../constants'
 import { useGlobalContext } from '../src/context/GlobalProvider'
 
 const WebNavbar = () => {
-    const { isLoggedIn, user, cartItems } = useGlobalContext()
+    const { isLoggedIn, user, cartItems, myOrders } = useGlobalContext()
     const pathname = usePathname()
     const router = useRouter()
-
+ 
     const cartCount = cartItems?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0
 
     const navItems = [
@@ -19,6 +19,14 @@ const WebNavbar = () => {
 
     const isActive = (item) => item.match.some(m => pathname === m || pathname.endsWith(m))
 
+    const pendingOrdersCount = (myOrders || []).filter(o => {
+        // Unpaid Paystack that is still within the payment window
+        if (o.payment_method === 'paystack' && o.payment_status === 'pending') return true;
+        // Active orders that still need attention
+        if (['Pending', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered'].includes(o.status)) return true;
+        return false;
+    }).length;
+    
     return (
         <View
             className="w-full bg-white px-6 py-3 flex-row items-center justify-between"
@@ -65,12 +73,14 @@ const WebNavbar = () => {
             <View className="flex-row items-center gap-1">
                 {navItems.map((item) => {
                     const active = isActive(item)
+                    const isOrders = item.label === 'Orders'
+
                     return (
                         <Pressable
                             key={item.href}
                             onPress={() => router.push(item.href)}
                             className={cn(
-                                'px-4 py-2 rounded-full',
+                                'px-4 py-2 rounded-full relative',
                                 active ? 'bg-orange-50' : 'bg-transparent'
                             )}
                             style={({ hovered }) => [
@@ -86,6 +96,29 @@ const WebNavbar = () => {
                             >
                                 {item.label}
                             </Text>
+
+                            {/* Pending orders badge – web only */}
+                            {isOrders && pendingOrdersCount > 0 && (
+                                <View
+                                style={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    right: 4,
+                                    backgroundColor: '#EF4444',
+                                    borderRadius: 99,
+                                    minWidth: 16,
+                                    height: 16,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    paddingHorizontal: 3,
+                                }}
+                                >
+                                <Text style={{ fontSize: 9, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                    {pendingOrdersCount > 9 ? '9+' : pendingOrdersCount}
+                                </Text>
+                                </View>
+                            )}
+
                         </Pressable>
                     )
                 })}

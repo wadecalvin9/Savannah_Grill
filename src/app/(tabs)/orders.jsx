@@ -1,4 +1,8 @@
 import { router } from 'expo-router'
+import { Platform } from 'react-native'
+import { usePaystack } from 'react-native-paystack-webview'
+import {markOrderAsPaid,generatePaystackReference, isPaymentWindowOpen, markPaymentExpired,} from '../../../lib/appwrite'         
+import { launchPaystackPayment } from '../../../lib/paystack' 
 import { useEffect, useState } from 'react'
 import {
     Alert,
@@ -11,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { useGlobalContext } from '../../context/GlobalProvider'
+
+
 
 const FILTERS = ['All', 'Active', 'Completed', 'Cancelled']
 
@@ -32,15 +38,68 @@ const isActive = (status) => !['Completed', 'Cancelled'].includes(status)
 const canCancel = (status) => status === 'Pending' || status === 'Preparing'
 
 export default function Orders() {
-    const { myOrders, fetchMyOrders, updateOrderStatus } = useGlobalContext()
+    const { myOrders, fetchMyOrders, updateOrderStatus, user } = useGlobalContext()
     const [filter, setFilter] = useState('All')
     const [refreshing, setRefreshing] = useState(false)
     const [confirmingId, setConfirmingId] = useState(null)
+    const { popup } = usePaystack()
+    const [payingId, setPayingId] = useState(null)
 
+    
     useEffect(() => {
-        fetchMyOrders()
-    }, [])
+        if (user) {
+            fetchMyOrders()
+        }
+    }, [user])
+    // Auto-expire old unpaid Paystack orders
+    useEffect(() => {
+    if (!myOrders || myOrders.length === 0) return
 
+    myOrders.forEach(async (order) => {
+        if (
+        order.payment_method === 'paystack' &&
+        order.payment_status === 'pending' &&
+        !isPaymentWindowOpen(order)
+        ) {
+        try {
+            await markPaymentExpired(order.id)
+            // Refresh so the UI immediately shows the expired message
+            await fetchMyOrders()
+        } catch (_) {
+            // silently ignore – will try again next time
+        }
+        }
+    })
+    }, [myOrders])
+
+    // Guest / signed-out protection
+        if (!user) {
+            return (
+                <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 }}>
+                        <Text style={{ fontSize: 18, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', textAlign: 'center' }}>
+                        Sign in to see your orders
+                        </Text>
+                        <TouchableOpacity
+                        onPress={() => router.push('/sign-in')}
+                        style={{
+                            marginTop: 20,
+                            backgroundColor: '#FE8C00',
+                            borderRadius: 99,
+                            paddingHorizontal: 28,
+                            paddingVertical: 14,
+                        }}
+                        >
+                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                            Sign In
+                        </Text>
+                        </TouchableOpacity>
+                    </View>
+                </SafeAreaView>
+            );
+        }    
+    
+    
     const handleRefresh = async () => {
         setRefreshing(true)
         await fetchMyOrders()
@@ -78,6 +137,56 @@ export default function Orders() {
         if (filter === 'Cancelled') return o.status === 'Cancelled'
         return true
     })
+
+    const handlePayNow = async (order) => {
+    if (!order?.id) return
+
+    setPayingId(order.id)
+
+    const reference = generatePaystackReference(order.id)
+    const amountCents = order.amount || Math.round((order.totalPrice || 0) * 100)
+    const publicKey = process.env.EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY
+
+    try {
+        await launchPaystackPayment({
+            popup,
+            publicKey,
+            email: user?.email || 'customer@savannahgrill.com',
+            amount: amountCents,
+            reference,
+            currency: 'KES',
+            metadata: {
+                order_id: order.id,
+                customer_name: order.customerName || '',
+            },
+            onSuccess: async (res) => {
+                try {
+                await markOrderAsPaid(order.id, {
+                    paystackReference: res?.reference || reference,
+                    paymentChannel: res?.channel || 'paystack',
+                })
+                await fetchMyOrders()
+                } catch (err) {
+                console.error('markOrderAsPaid error:', err)
+                Alert.alert('Payment received', 'Status will update shortly.')
+                } finally {
+                setPayingId(null)
+                }
+            },
+            onCancel: () => {
+                setPayingId(null)
+                Alert.alert(
+                'Payment cancelled',
+                'You can try again anytime from this screen.'
+                )
+            },
+            })
+        } catch (e) {
+            console.error(e)
+            setPayingId(null)
+            Alert.alert('Error', 'Could not start payment. Please try again.')
+        }
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
@@ -256,8 +365,75 @@ export default function Orders() {
                                 </View>
                                 ) : null}
 
+                                {/*Payment Status*/}
+                                {order.payment_status && (
+                                <Text style={{
+                                    fontSize: 11,
+                                    fontFamily: 'QuickSand-Bold',
+                                    color: order.payment_status === 'paid' ? '#16A34A' : '#9CA3AF',
+                                    marginTop: 4,
+                                    marginBottom: 4,
+                                }}>
+                                    {order.payment_status === 'paid'
+                                    ? 'Paid'
+                                    : order.payment_status === 'awaiting_collection'
+                                        ? 'Pay on delivery'
+                                        : order.payment_status}
+                                </Text>
+                                )}
+
                                 {/* Action buttons */}
                                 <View style={{ gap: 8 }}>
+
+                                    {/* Pay now – only for pending Paystack orders */}
+                                    {order.payment_method === 'paystack' &&
+                                        order.payment_status === 'pending' &&
+                                        isPaymentWindowOpen(order) && (
+                                            <TouchableOpacity
+                                            onPress={() => handlePayNow(order)}
+                                            disabled={payingId === order.id}
+                                            activeOpacity={0.85}
+                                            style={{
+                                                backgroundColor: '#FE8C00',
+                                                borderRadius: 12,
+                                                paddingVertical: 11,
+                                                alignItems: 'center',
+                                                opacity: payingId === order.id ? 0.7 : 1,
+                                            }}
+                                            >
+                                            <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                                {payingId === order.id ? 'Opening Paystack…' : 'Pay now'}
+                                            </Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                    {/* Expired message */}
+                                    {order.payment_method === 'paystack' &&
+                                    (order.payment_status === 'expired' ||
+                                        (order.payment_status === 'pending' && !isPaymentWindowOpen(order))) && (
+                                        <View
+                                        style={{
+                                            backgroundColor: '#FEF2F2',
+                                            borderRadius: 12,
+                                            paddingVertical: 10,
+                                            paddingHorizontal: 12,
+                                            borderWidth: 1,
+                                            borderColor: '#FECACA',
+                                        }}
+                                        >
+                                        <Text
+                                            style={{
+                                            fontSize: 13,
+                                            fontFamily: 'QuickSand-Bold',
+                                            color: '#DC2626',
+                                            textAlign: 'center',
+                                            }}
+                                        >
+                                            Payment window expired – please place a new order
+                                        </Text>
+                                        </View>
+                                    )}    
+
                                     {/* Track while still in transit */}
                                     {active && order.status !== 'Delivered' && (
                                         <TouchableOpacity

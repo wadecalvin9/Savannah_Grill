@@ -13,7 +13,10 @@ import {
     setOrderConfirmationCode,
     verifyDeliveryCodeAndComplete,
     updateOrderStatusDB,
-
+    markOrderAsPaid,
+    markPaymentExpired,        
+    isPaymentWindowOpen,
+    PAYMENT_METHODS,
     signOut
 } from '../../lib/appwrite';
 
@@ -113,10 +116,37 @@ const GlobalProvider = ({ children }) => {
     };
 
     const fetchMyOrders = async () => {
-        if (!user?.$id) return;
+        if (!user?.$id) {
+            setMyOrders([]);
+            return;
+        }
+
         try {
             const result = await getMyOrders(user.$id);
-            setMyOrders(result || []);
+            const orders = result || [];
+
+            // Auto-expire old unpaid Paystack orders
+            const expirePromises = orders
+                .filter(
+                    (order) =>
+                        order.payment_method === 'paystack' &&
+                        order.payment_status === 'pending' &&
+                        !isPaymentWindowOpen(order)
+                )
+                .map((order) =>
+                    markPaymentExpired(order.id).catch(() => {
+                        // ignore individual failures
+                    })
+                );
+
+            if (expirePromises.length > 0) {
+                await Promise.all(expirePromises);
+                // Fetch again so the UI gets the updated "expired" / Cancelled status
+                const refreshed = await getMyOrders(user.$id);
+                setMyOrders(refreshed || []);
+            } else {
+                setMyOrders(orders);
+            }
         } catch (error) {
             console.warn('fetchMyOrders skipped:', error?.message);
         }
@@ -150,7 +180,16 @@ const GlobalProvider = ({ children }) => {
 
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            // User signed out or is a guest → clear personal data
+            setMyOrders([]);
+            setOrders([]);
+            setRiderOrders([]);
+            setRiderHistory([]);
+            setActiveDelivery(null);
+            setPendingConfirmations([]);    
+            return;
+        }
 
         const role = user.role || 'customer';
 
@@ -226,15 +265,24 @@ const GlobalProvider = ({ children }) => {
     );
 
 
-    const placeOrder = async ({ note, address }) => {
+    const placeOrder = async ({ note, address, paymentMethod = 'cash_on_delivery', amountKes }) => {
         if (cartItems.length === 0) return null;
+
         const items = cartItems.map(ci => ({
             name: ci.item.name,
             quantity: ci.quantity,
             price: ci.item.price,
             image_url: ci.item.image_url,
         }));
-        const totalPrice = totalCartPrice + (totalCartPrice > 1000 ? 0 : 150);
+
+        // Prefer the amount coming from the cart screen (includes delivery fee)
+        const totalPrice = amountKes != null
+            ? amountKes
+            : totalCartPrice + (totalCartPrice > 1000 ? 0 : 150);
+
+        // Decide payment status based on method
+        const isPaystack = paymentMethod === 'paystack';
+        const paymentStatus = isPaystack ? 'pending' : 'awaiting_collection';
 
         try {
             const doc = await createOrder({
@@ -244,6 +292,12 @@ const GlobalProvider = ({ children }) => {
                 note: note || '',
                 items,
                 totalPrice,
+                // Payment fields
+                paymentMethod,
+                paymentStatus,
+                amount: Math.round(totalPrice * 100), // store in cents
+                currency: 'KES',
+                // paystackReference will be added later when we integrate Paystack
             });
 
             const newOrderObj = {
@@ -258,19 +312,24 @@ const GlobalProvider = ({ children }) => {
                 status: 'Pending',
                 riderId: '',
                 riderName: '',
+                // Payment fields for immediate UI
+                payment_method: paymentMethod,
+                payment_status: paymentStatus,
+                amount: Math.round(totalPrice * 100),
+                amountKes: totalPrice,
+                currency: 'KES',
             };
 
             setOrders(prev => [newOrderObj, ...prev]);
             setMyOrders(prev => [newOrderObj, ...prev]);
             clearCart();
             return newOrderObj;
-        } catch (error) {
+        }   catch (error) {
             console.error('Failed to persist order in Appwrite:', error);
-            clearCart();
-            return null;
+            // Do NOT clear the cart on failure so the user can retry
+            throw error;
         }
     };
-
 
     const updateOrderStatus = async (orderId, newStatus) => {
         const update = (o) =>

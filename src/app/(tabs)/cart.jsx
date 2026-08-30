@@ -12,6 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { useGlobalContext } from '../../context/GlobalProvider'
+import { Platform } from 'react-native';
+import { launchPaystackPayment } from '../../../lib/paystack';   // adjust path
+import { usePaystack } from 'react-native-paystack-webview';
+import { markOrderAsPaid, generatePaystackReference } from '../../../lib/appwrite';  // adjust path if needed
 
 export default function Cart() {
     const {
@@ -26,60 +30,126 @@ export default function Cart() {
         user,
     } = useGlobalContext()
 
+    const PAYMENT_OPTIONS = [
+    {
+        id: 'paystack',
+        title: 'Pay now',
+        subtitle: 'M-Pesa, Card or Bank',
+        badge: 'Recommended',
+    },
+    {
+        id: 'cash_on_delivery',
+        title: 'Pay on delivery',
+        subtitle: 'Cash or M-Pesa to rider',
+        badge: null,
+    },
+    ]
+
+    const { popup } = usePaystack();
+
     const [note, setNote] = useState('')
     const [isPlacingOrder, setIsPlacingOrder] = useState(false)
 
     const deliveryFee = totalCartPrice > 1000 || totalCartItems === 0 ? 0 : 150
     const grandTotal = totalCartPrice + deliveryFee
 
+    const [paymentMethod, setPaymentMethod] = useState('paystack') // default to Pay now
     const handleCheckout = () => {
-        if (cartItems.length === 0) return
+        if (cartItems.length === 0) return;
 
-        // Guest check – show friendly message instead of Appwrite error
         if (!user) {
             Alert.alert(
-                'Sign in required',
-                'Please sign in to place an order.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Sign In', onPress: () => router.push('/sign-in') },
-                ]
-            )
-            return
+            'Sign in required',
+            'Please sign in to place an order.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign In', onPress: () => router.push('/sign-in') },
+            ]
+            );
+            return;
         }
 
+        setIsPlacingOrder(true);
 
-        setIsPlacingOrder(true)
         Alert.alert(
             'Confirm Order',
             `Place order for KES ${grandTotal.toLocaleString()} to ${deliveryLocation}?`,
             [
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => setIsPlacingOrder(false),
-                },
-                {
-                    text: 'Place Order',
-                    style: 'default',
-                    onPress: async () => {
-                        try {
-                            const newOrder = await placeOrder({ note, address: deliveryLocation })
-                            setIsPlacingOrder(false)
-                            if (newOrder?.id) {
-                                router.push(`/order-tracking/${newOrder.id}`)
-                            } else {
-                                router.push('/')
-                            }
-                        } catch (e) {
-                            setIsPlacingOrder(false)
-                            Alert.alert('Error', 'Could not place order. Please try again.')
-                        }
+            {
+                text: 'Cancel',
+                style: 'cancel',
+                onPress: () => setIsPlacingOrder(false),
+            },
+            {
+                text: 'Place Order',
+                onPress: async () => {
+                try {
+                    // 1. Create the order first
+                    const newOrder = await placeOrder({
+                    note,
+                    address: deliveryLocation,
+                    paymentMethod,
+                    amountKes: grandTotal,
+                    });
+
+                    if (!newOrder?.id) {
+                    throw new Error('Order creation failed');
+                    }
+
+                    // 2. If Pay on Delivery → just go to tracking
+                    if (paymentMethod === 'cash_on_delivery') {
+                    setIsPlacingOrder(false);
+                    router.push(`/order-tracking/${newOrder.id}`);
+                    return;
+                    }
+
+                    // 3. Pay now → open Paystack
+                    const reference = generatePaystackReference(newOrder.id);
+                    const publicKey = process.env.EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY;
+
+                    await launchPaystackPayment({
+                    popup,                    // from usePaystack()
+                    publicKey,
+                    email: user.email || 'customer@savannahgrill.com',
+                    amount: Math.round(grandTotal * 100),
+                    reference,
+                    currency: 'KES',
+                    metadata: {
+                        order_id: newOrder.id,
+                        customer_name: user.name || '',
                     },
+                    onSuccess: async (res) => {
+                        try {
+                            await markOrderAsPaid(newOrder.id, {
+                                paystackReference: res?.reference || reference,
+                                paymentChannel: res?.channel || 'paystack',
+                            });
+                        }   catch (err) {
+                            console.error('markOrderAsPaid error:', err);
+                        }
+                        setIsPlacingOrder(false);
+                        router.push(`/order-tracking/${newOrder.id}`);
+                    },
+                    onCancel: () => {
+                        setIsPlacingOrder(false);
+                        Alert.alert(
+                            'Payment cancelled',
+                            'Your order is saved as pending. You can complete payment later from My Orders.'
+                        );
+                        router.push(`/order-tracking/${newOrder.id}`);
+                    },
+                    });
+                } catch (e) {
+                    console.error(e);
+                    setIsPlacingOrder(false);
+                    Alert.alert('Error', 'Could not place order. Please try again.');
+                }
                 },
+            },
             ]
-        )
-    }
+        );
+        };
+
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
@@ -311,6 +381,86 @@ export default function Cart() {
                                         {deliveryLocation}
                                     </Text>
                                 </View>
+                            </View>
+
+                            {/* Payment Method */}
+                            <View style={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 20,
+                            padding: 16,
+                            marginBottom: 16,
+                            borderWidth: 1,
+                            borderColor: '#F3F4F6',
+                            }}>
+                            <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', marginBottom: 12 }}>
+                                Payment Method
+                            </Text>
+
+                            {PAYMENT_OPTIONS.map((opt) => {
+                                const selected = paymentMethod === opt.id
+                                return (
+                                <TouchableOpacity
+                                    key={opt.id}
+                                    onPress={() => setPaymentMethod(opt.id)}
+                                    activeOpacity={0.8}
+                                    style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    paddingVertical: 12,
+                                    paddingHorizontal: 12,
+                                    borderRadius: 14,
+                                    marginBottom: 8,
+                                    backgroundColor: selected ? '#FFF7ED' : '#F9FAFB',
+                                    borderWidth: 1.5,
+                                    borderColor: selected ? '#FE8C00' : '#E5E7EB',
+                                    }}
+                                >
+                                    {/* Radio circle */}
+                                    <View style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    borderWidth: 2,
+                                    borderColor: selected ? '#FE8C00' : '#D1D5DB',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: 12,
+                                    }}>
+                                    {selected && (
+                                        <View style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: 5,
+                                        backgroundColor: '#FE8C00',
+                                        }} />
+                                    )}
+                                    </View>
+
+                                    <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
+                                        {opt.title}
+                                        </Text>
+                                        {opt.badge && (
+                                        <View style={{
+                                            backgroundColor: '#FE8C00',
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 2,
+                                            borderRadius: 99,
+                                        }}>
+                                            <Text style={{ fontSize: 10, fontFamily: 'QuickSand-Bold', color: '#FFF' }}>
+                                            {opt.badge}
+                                            </Text>
+                                        </View>
+                                        )}
+                                    </View>
+                                    <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#9CA3AF', marginTop: 2 }}>
+                                        {opt.subtitle}
+                                    </Text>
+                                    </View>
+                                </TouchableOpacity>
+                                )
+                            })}
                             </View>
 
                             {/* Summary Card */}
