@@ -4,7 +4,7 @@ import { Alert, Text, View, TouchableOpacity } from 'react-native'
 import CustomButton from "../../../components/CustomButton"
 import CustomInput from "../../../components/CustomInput"
 import { useGlobalContext } from '../../context/GlobalProvider'
-import { getCurrentUser, signin } from '../../../lib/appwrite'
+import { getCurrentUser, signin, signOut } from '../../../lib/appwrite'
 
 export default function SignIn() {
   const { setIsLoggedIn, setUser, setUserRole } = useGlobalContext()
@@ -24,6 +24,28 @@ export default function SignIn() {
     try {
       await signin({ email: form.email, password: form.password })
       const res = await getCurrentUser()
+      
+      // Handle missing database profile
+      if (res?.missingProfile) {
+        Alert.alert(
+          'Account Incomplete',
+          'Your account exists but the profile data is missing. Please contact support or sign up again with a different email.',
+          [
+            {
+              text: 'OK',
+              onPress: async () => {
+                try { await signOut() } catch (_) {}
+                setUser(null)
+                setIsLoggedIn(false)
+                setUserRole('customer')
+                router.replace('/')
+              }
+            }
+          ]
+        )
+        return
+      } 
+      
       setUser(res)
       setIsLoggedIn(true)
       const role = res?.role || 'customer'
@@ -32,7 +54,7 @@ export default function SignIn() {
       if (role === 'rider') {
         router.replace('/(rider)/dashboard')
       } else if (role === 'admin') {
-        router.replace('/admin')
+        router.replace('/(admin)/dashboard')
       } else if (role === 'staff') {
         router.replace('/(staff)/dashboard')
 

@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~56.0.24",
+    "@expo/vector-icons": "^15.0.2",
     "babel-preset-expo": "~56.0.0",
     "clsx": "^2.1.1",
     "expo": "^56.0.18",
@@ -28,6 +29,7 @@
     "react-native": "0.85.3",
     "react-native-appwrite": "^0.34.0",
     "react-native-gesture-handler": "~2.31.1",
+    "react-native-paystack-webview": "^5.1.0",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",

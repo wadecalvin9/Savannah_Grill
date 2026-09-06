@@ -4,12 +4,13 @@ import { images } from '../constants'
 import { useGlobalContext } from '../src/context/GlobalProvider'
 
 const MenuCard = ({ item }) => {
-    const { addToCart } = useGlobalContext()
+    const { addToCart, showToast } = useGlobalContext()
     const handlePress = () => router.push(`/menu/${item.$id}`)
 
     const handleQuickAdd = (e) => {
         e.stopPropagation?.()
         addToCart(item, 1)
+        showToast('Added to cart')
     }
 
     return (

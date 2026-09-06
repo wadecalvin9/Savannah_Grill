@@ -1,3 +1,4 @@
+import { PaystackProvider } from 'react-native-paystack-webview';
 import "../../lib/alertPolyfill";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -33,8 +34,17 @@ function RootLayoutInner() {
 
 export default function RootLayout() {
   return (
-    <GlobalProvider>
-      <RootLayoutInner />
-    </GlobalProvider>
+    <PaystackProvider
+      publicKey={process.env.EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY || (() => { throw new Error('Missing EXPO_PUBLIC_PAYSTACK_PUBLIC_KEY') })()}
+      currency="KES"                     // important for Kenya
+      defaultChannels={['card', 'mobile_money', 'bank']}  // M-Pesa + card + bank
+      debug={__DEV__}                    // shows helpful logs in development
+    >
+      <GlobalProvider>
+        <RootLayoutInner />
+      </GlobalProvider>
+
+    </PaystackProvider>
+    
   );
 }

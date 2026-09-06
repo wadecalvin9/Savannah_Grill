@@ -1,9 +1,11 @@
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { signOut } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 import { router } from 'expo-router'
+
+const isWeb = Platform.OS === 'web'
 
 export default function RiderProfile() {
     const { user, setIsLoggedIn, setUser, setUserRole, riderHistory } = useGlobalContext()
@@ -37,15 +39,23 @@ export default function RiderProfile() {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
-            <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={{
+                    paddingBottom: isWeb ? 40 : 120,
+                    maxWidth: isWeb ? 600 : undefined,
+                    width: isWeb ? '100%' : undefined,
+                    alignSelf: isWeb ? 'center' : undefined,
+                }}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Header */}
-                <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+                <View style={{ paddingHorizontal: isWeb ? 32 : 20, paddingTop: isWeb ? 20 : 16, paddingBottom: 12 }}>
                     <Text style={{ fontSize: 24, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>Profile</Text>
                 </View>
 
                 {/* Rider Avatar Card */}
                 <View style={{
-                    backgroundColor: '#FFFFFF', marginHorizontal: 20, borderRadius: 20,
+                    backgroundColor: '#FFFFFF', marginHorizontal: isWeb ? 32 : 20, borderRadius: 20,
                     padding: 20, borderWidth: 1, borderColor: '#E5E7EB',
                     alignItems: 'center',
                 }}>
@@ -74,7 +84,12 @@ export default function RiderProfile() {
                 </View>
 
                 {/* Stats */}
-                <View style={{ flexDirection: 'row', paddingHorizontal: 20, marginTop: 16, gap: 10 }}>
+                <View style={{
+                    flexDirection: 'row',
+                    paddingHorizontal: isWeb ? 32 : 20,
+                    marginTop: 16,
+                    gap: 10,
+                }}>
                     <View style={{
                         flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14,
                         borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center',
@@ -97,7 +112,7 @@ export default function RiderProfile() {
 
                 {/* Account Info */}
                 <View style={{
-                    backgroundColor: '#FFFFFF', marginHorizontal: 20, marginTop: 16,
+                    backgroundColor: '#FFFFFF', marginHorizontal: isWeb ? 32 : 20, marginTop: 16,
                     borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden',
                 }}>
                     <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
@@ -117,7 +132,7 @@ export default function RiderProfile() {
 
                 {/* Sign Out */}
                 <View style={{
-                    backgroundColor: '#FFFFFF', marginHorizontal: 20, marginTop: 16,
+                    backgroundColor: '#FFFFFF', marginHorizontal: isWeb ? 32 : 20, marginTop: 16,
                     borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden',
                 }}>
                     <TouchableOpacity

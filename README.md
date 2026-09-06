@@ -2,34 +2,62 @@
 
 Savannah Grill is a full-featured, cross-platform (iOS, Android, and Web) food ordering and delivery application built with **Expo (SDK 57)**, **React Native**, **Expo Router**, **NativeWind v4 (Tailwind CSS)**, and **Appwrite Cloud Backend**.
 
-The platform features role-based access control supporting **Customers**, **Riders**, and **Administrators** with real-time order tracking, live status updates, menu customization, and dynamic management interfaces.
+The platform features role-based access control supporting **Customers**, **Kitchen Staff**, **Riders**, and **Administrators** with real-time order tracking, live status updates, menu customization, and dynamic management interfaces.
 
 ---
 
-## 📸 Overview & Key Features
-
 ### 👤 Customer Experience
-* **Role-Based Authentication**: Email & password authentication powered by Appwrite. Automatic role-based routing on login (`Customer`, `Rider`, `Admin`).
-* **Interactive Menu Exploration**: Browse categories (Burgers, Steaks, Drinks, Sides, Desserts), search food items in real-time, filter by tags, and view calorie/protein nutritional specs.
-* **Detailed Product Views**: Full product details including high-res image header, rating submission system, price calculations, quantity adjustments, and category recommendation carousels.
-* **Location Picker**: Interactive delivery address modal with popular Nairobi presets (Karen, Westlands, Kilimani, Lavington, CBD, etc.) or custom user entry.
-* **Shopping Cart & Checkout**: Add items, adjust item quantities with live subtotal/delivery fee calculation, append optional chef instructions, and place orders directly to the database.
-* **Live Order Tracking**: Visual 5-stage timeline progress indicator (`Pending` → `Preparing` → `Ready` → `Out for Delivery` → `Completed`) with live order status updates and delivery map views.
-* **Order History**: Review past orders, inspect itemized totals, and check fulfillment statuses.
+* **Guest browsing** – Explore the full menu without signing in. Login is only required when placing an order.
+* **Role-based authentication** – Email & password auth via Appwrite with automatic role-based routing.
+* **Interactive menu** – Browse categories, real-time search, filters, nutritional info, and detailed product pages with ratings.
+* **Location picker** – Delivery address modal with popular Nairobi presets or custom entry.
+* **Shopping cart & checkout** – Live totals, delivery fee logic, optional notes, and dual payment options:
+  * **Pay now** (Paystack – card / M-Pesa / bank)
+  * **Pay on delivery** (Cash on Delivery)
+* **Payment window** – Unpaid Paystack orders remain payable for a limited time (default 45 minutes). After expiry the order is marked expired/cancelled and the “Pay now” button is removed.
+* **Live order tracking** – Visual timeline (`Pending` → `Preparing` → `Ready` → `Out for Delivery` → `Delivered` → `Completed`).
+* **Delivery confirmation code** – When the rider arrives, the customer sees a 4-digit code. The rider must enter the correct code (1-hour expiry) to complete the delivery.
+* **Order history** – Clear list with payment status badges, “Pay now” for pending Paystack orders, track/confirm/cancel actions, and filter chips (All / Active / Completed / Cancelled).
+* **Pending-orders badge** – Visible on the Orders tab (mobile bottom tabs + web top navbar).
+
+### 👨‍🍳 Kitchen Staff
+* Dedicated staff portal (mobile + web).
+* Dashboard showing **Pending / Preparing / Ready** orders.
+* Order history and order-detail status updates.
+* Unpaid / expired Paystack orders are automatically hidden from the kitchen queue so only actionable orders appear.
+* Web top navbar (Kitchen / History / Profile); floating bottom tabs on mobile.
 
 ### 🚴 Rider Delivery Portal
-* **Delivery Dashboard**: View all ready-for-pickup orders across the kitchen in real-time.
-* **One-Click Acceptance**: Accept available delivery assignments to start fulfillment.
-* **Active Delivery View**: Dedicated active navigation screen featuring customer address details, special delivery instructions, and live route mapping (`RiderMapView`).
-* **Delivery Completion**: Mark orders as completed upon arrival.
-* **Earnings & Delivery History**: Track past completed deliveries, total trips, and total earnings.
+* Dashboard of ready-for-pickup orders.
+* One-click accept → status becomes **Out for Delivery**.
+* Active delivery screen with customer details, items, destination, and map.
+* **I’ve Arrived – Get Code** flow:
+  1. Rider generates a 4-digit confirmation code.
+  2. Customer sees the code on their Orders screen.
+  3. Rider enters the code (max 5 attempts, 1-hour expiry).
+  4. Correct code immediately marks the order **Completed**.
+* History of past deliveries and earnings view.
+* Web top navbar + mobile floating tabs.
 
 ### 🛠️ Admin Management Portal
-* **Analytics Dashboard**: Overview of key business metrics (Total Revenue, Active Orders, Total Products, Registered Accounts) alongside recent order feeds.
-* **Menu Item Management**: Full CRUD capabilities for food items—add new menu items, edit descriptions, change pricing, upload product images to Appwrite Storage, and delete items.
-* **Image Upload Integration**: Upload food images directly from mobile device gallery or web file system to Appwrite Storage with fallback sample image presets.
-* **Order Lifecycle Control**: Real-time management of customer order statuses through kitchen stages (`Preparing` → `Ready` → `Out for Delivery` → `Completed` → `Cancelled`).
-* **User & Role Management**: View all registered accounts and switch user roles dynamically (`customer` ↔ `rider` ↔ `admin`).
+* Analytics dashboard (revenue, active orders, products, users).
+* Full menu CRUD with image upload to Appwrite Storage.
+* Order lifecycle control.
+* User & role management (including **Make Staff**).
+
+---
+
+## 💳 Payments
+
+| Method              | Behaviour                                                                 | Status values                          |
+|---------------------|---------------------------------------------------------------------------|----------------------------------------|
+| **Pay now** (Paystack) | Order created as `pending` → Paystack popup opens (works on mobile + web) | `pending` → `paid` / `expired`        |
+| **Pay on delivery** | Order created as `awaiting_collection`                                    | `awaiting_collection`                  |
+
+* Currency: **KES** (amounts stored in cents for Paystack).
+* Payment window: configurable (currently 45 minutes). After expiry → `payment_status = expired` + order cancelled so the kitchen stays clean.
+* Customers can retry payment from the Orders screen while the window is still open.
+* Platform-aware Paystack launch (native WebView on mobile, official InlineJS popup on web).
 
 ---
 
@@ -51,53 +79,70 @@ The platform features role-based access control supporting **Customers**, **Ride
 
 ```
 Savannah_Grill/
-├── assets/                     # Fonts (Quicksand), icons, and graphics
-├── components/                 # Reusable UI Components
-│   ├── Cartbutton.jsx          # Cart icon with dynamic item count badge
-│   ├── CustomButton.jsx        # Styled action button with loading indicator
-│   ├── CustomInput.jsx         # Form text input with password toggle
-│   ├── LocationModal.jsx       # Delivery location selection modal
-│   ├── MenuCard.jsx            # Food item card component
-│   └── RiderMapView.jsx        # Interactive delivery map component
+├── assets/                          # Fonts (Quicksand), icons, images & splash assets
+├── components/                      # Reusable UI components
+│   ├── Cartbutton.jsx               # Cart icon with live item-count badge
+│   ├── CustomButton.jsx             # Styled primary button with loading state
+│   ├── CustomInput.jsx              # Form input with password visibility toggle
+│   ├── LocationModal.jsx            # Delivery address picker (Nairobi presets + custom)
+│   ├── MenuCard.jsx                 # Food item card used on home & search
+│   ├── RiderMapView.jsx             # Map component for active rider deliveries
+│   ├── WebFooter.jsx                # Footer shown on web layout
+│   └── WebNavbar.jsx                # Sticky top navbar for web (logo, links, cart & pending-orders badges)
+├── constants/
+│   └── index.ts                     # Shared images, icons and constant values
 ├── lib/
-│   ├── appwrite.js             # Appwrite SDK client setup & API methods
-│   └── alertPolyfill.js        # Cross-platform web Alert.alert polyfill
+│   ├── alertPolyfill.js             # Makes Alert.alert work correctly on web
+│   ├── appwrite.js                  # Appwrite client + all helpers (orders, payments, confirmation codes, staff/rider queries)
+│   ├── data.js                      # Static / seed data helpers
+│   ├── paystack.js                  # Platform-aware Paystack launcher (mobile WebView + web InlineJS)
+│   └── seed.ts                      # Database seeding utility
 ├── src/
-│   ├── app/                    # Expo Router file-based pages
-│   │   ├── _layout.tsx         # Root layout, fonts loading & web alert setup
-│   │   ├── index.jsx           # Entry redirect logic
-│   │   ├── (auth)/             # Authentication Screens
-│   │   │   ├── _layout.jsx     # Auth graphical layout wrapper
-│   │   │   ├── sign-in.jsx     # Login screen
-│   │   │   └── sign-up.jsx     # Account registration screen
-│   │   ├── (tabs)/             # Customer Main Navigation (Tab Bar)
-│   │   │   ├── _layout.jsx     # Floating bottom tab bar
-│   │   │   ├── index.jsx       # Customer Home screen & category feed
-│   │   │   ├── search.jsx      # Menu search & filters
-│   │   │   ├── cart.jsx        # Shopping cart & checkout flow
-│   │   │   ├── orders.jsx      # Customer order history
-│   │   │   └── profile.jsx     # User profile & location manager
-│   │   ├── (rider)/            # Rider Portal Screens
-│   │   │   ├── _layout.jsx     # Rider bottom tabs layout
-│   │   │   ├── dashboard.jsx   # Available deliveries queue
-│   │   │   ├── active.jsx      # Active delivery route & completion
-│   │   │   ├── history.jsx     # Rider delivery history & earnings
-│   │   │   └── profile.jsx     # Rider profile & sign-out
-│   │   ├── admin/              # Admin Management Screens
-│   │   │   ├── index.jsx       # Admin dashboard & stats
-│   │   │   ├── products.jsx    # Product list & management
-│   │   │   ├── add-product.jsx # Create new food item form
-│   │   │   ├── edit-product.jsx# Update existing food item form
-│   │   │   ├── orders.jsx      # Admin order status manager
-│   │   │   └── users.jsx       # Admin user role manager
-│   │   ├── menu/[id].jsx       # Menu item detail & review page
-│   │   └── order-tracking/[id].jsx # Order timeline tracking screen
+│   ├── app/                         # Expo Router file-based routes
+│   │   ├── _layout.tsx              # Root layout (fonts, PaystackProvider, GlobalProvider, web setup)
+│   │   ├── index.jsx                # Entry point – role-based redirect
+│   │   ├── globals.css              # Global styles
+│   │   ├── (auth)/                  # Authentication group
+│   │   │   ├── _layout.jsx
+│   │   │   ├── sign-in.jsx          # Login screen
+│   │   │   └── sign-up.jsx          # Registration screen
+│   │   ├── (tabs)/                  # Customer bottom-tab navigation
+│   │   │   ├── _layout.jsx          # Floating tab bar (mobile) + web layout
+│   │   │   ├── index.jsx            # Home – categories & featured items
+│   │   │   ├── search.jsx           # Menu search & filters
+│   │   │   ├── cart.jsx             # Cart + checkout (Paystack / COD)
+│   │   │   ├── orders.jsx           # Order history, Pay now, confirmation code display
+│   │   │   └── profile.jsx          # Profile, location & sign-out
+│   │   ├── (staff)/                 # Kitchen staff portal
+│   │   │   ├── _layout.jsx          # Staff layout (web top nav + mobile tabs)
+│   │   │   ├── dashboard.jsx        # Pending / Preparing / Ready queue
+│   │   │   ├── history.jsx          # Staff order history
+│   │   │   ├── profile.jsx          # Staff profile & sign-out
+│   │   │   └── order/[id].jsx       # Single order detail & status updates
+│   │   ├── (rider)/                 # Rider portal
+│   │   │   ├── _layout.jsx          # Rider layout (web top nav + mobile tabs)
+│   │   │   ├── dashboard.jsx        # Available “Ready” orders
+│   │   │   ├── active.jsx           # Active delivery + confirmation-code flow
+│   │   │   ├── history.jsx          # Past deliveries & earnings
+│   │   │   └── profile.jsx          # Rider profile & sign-out
+│   │   ├── (admin)/                 # Admin management portal
+│   │   │   ├── _layout.jsx
+│   │   │   ├── dashboard.jsx        # Stats overview
+│   │   │   ├── products.jsx         # Menu item list
+│   │   │   ├── add-product.jsx      # Create new menu item
+│   │   │   ├── edit-product.jsx     # Edit existing menu item
+│   │   │   ├── orders.jsx           # Admin order management
+│   │   │   └── users.jsx            # User list + role management (Make Staff, etc.)
+│   │   ├── menu/[id].jsx            # Single menu-item detail & reviews
+│   │   └── order-tracking/[id].jsx  # Live order timeline & tracking
 │   └── context/
-│       └── GlobalProvider.jsx  # Global state provider (Auth, Cart, Orders, Role)
-├── app.json                    # Expo configuration
-├── babel.config.js             # Babel config with NativeWind preset
-├── metro.config.js             # Metro bundler config with NativeWind CSS plugin
-└── tailwind.config.js          # Tailwind CSS theme & color definitions
+│       └── GlobalProvider.jsx       # Global state (auth, cart, orders, roles, polling, payments)
+├── app.json                         # Expo configuration
+├── babel.config.js                  # Babel + NativeWind preset
+├── metro.config.js                  # Metro bundler config
+├── tailwind.config.js               # Tailwind / NativeWind theme
+├── package.json
+└── README.md
 ```
 
 ---
@@ -153,11 +198,12 @@ You can test different user experiences by logging in with different roles:
 
 | Role | Access Level | Navigates To |
 |---|---|---|
-| **Customer** | Menu browsing, cart, ordering, tracking, user profile | `/(tabs)` |
-| **Rider** | Accepting deliveries, active delivery map, earnings history | `/(rider)/dashboard` |
+| **Customer** | Menu browsing, cart, ordering, tracking, user profile, Guest Browsing allowed | `/(tabs)` |
+| **Staff** | Receives orders, prepares orders, Marks orders as completed | `/(staff)/dashboard` |
+| **Rider** | Accepting deliveries, active delivery map, Confirmation-code handover flow | earnings history | `/(rider)/dashboard` |
 | **Admin** | Business stats, CRUD menu items, order status stepper, user roles | `/admin` |
 
-*Note: New sign-ups default to the `Customer` role. You can promote any account to `Rider` or `Admin` via the Admin Users page (`/admin/users`).*
+*Note: New sign-ups default to the `Customer` role. You can promote any account to `Rider`, `Staff` or `Admin` via the Admin Users page (`/admin/users`).*
 
 ---
 
@@ -165,6 +211,8 @@ You can test different user experiences by logging in with different roles:
 The project is optimized for both mobile and web browsers:
 - **Responsive Layout Reset**: Base styling includes container height resets (`html, body, #root`) ensuring full-height flex layouts render properly across desktop and mobile browsers.
 - **Cross-Platform Alert Polyfill**: Native `Alert.alert` calls are polyfilled on web using `window.alert` and `window.confirm` to ensure confirmation buttons (Checkout, Delete, Sign Out, Accept Delivery) function seamlessly across browsers.
+- **Paystack** works on both platforms (WebView on native, InlineJS popup on web).
+- **Guest state** is fully cleared on sign-out (no leftover orders).
 
 ---
 

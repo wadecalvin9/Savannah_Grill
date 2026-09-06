@@ -13,13 +13,23 @@ export default function SignUp() {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: '',
   })
 
   const submit = async () => {
-    const { name, email, password } = form
-    if (!name || !email || !password) {
-      return Alert.alert("Error", "Please enter your name, email and password")
+    const { name, email, password, confirmPassword } = form
+
+    if (!name || !email || !password || !confirmPassword) {
+      return Alert.alert("Error", "Please fill in all fields")
+    }
+
+    if (password !== confirmPassword) {
+      return Alert.alert("Error", "Passwords do not match")
+    }
+
+    if (password.length < 8) {
+      return Alert.alert("Error", "Password must be at least 8 characters")
     }
 
     setSubmitting(true)
@@ -62,6 +72,14 @@ export default function SignUp() {
         secureTextEntry
       />
 
+      <CustomInput
+        label="Confirm Password"
+        placeholder="Re-enter your password"
+        value={form.confirmPassword}
+        onChangeText={(value) => setForm({ ...form, confirmPassword: value })}
+        secureTextEntry
+      />
+      
       <CustomButton
         title="Sign Up"
         onPress={submit}

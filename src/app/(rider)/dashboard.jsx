@@ -4,6 +4,7 @@ import {
     Alert,
     FlatList,
     Image,
+    Platform,
     RefreshControl,
     Text,
     TouchableOpacity,
@@ -12,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { useGlobalContext } from '../../context/GlobalProvider'
+
+const isWeb = Platform.OS === 'web'
 
 export default function RiderDashboard() {
     const { user, riderOrders, activeDelivery, fetchRiderData, acceptRiderDelivery } = useGlobalContext()
@@ -59,10 +62,21 @@ export default function RiderDashboard() {
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
             {/* Header */}
             <View style={{
-                paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14,
-                backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+                paddingHorizontal: isWeb ? 32 : 20,
+                paddingTop: isWeb ? 20 : 16,
+                paddingBottom: 14,
+                backgroundColor: '#FFFFFF',
+                borderBottomWidth: 1,
+                borderBottomColor: '#F3F4F6',
             }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{
+                    maxWidth: isWeb ? 900 : undefined,
+                    width: '100%',
+                    alignSelf: isWeb ? 'center' : undefined,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
                     <View>
                         <Text style={{ fontSize: 22, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
                             Hey, {user?.name?.split(' ')[0]}
@@ -71,7 +85,6 @@ export default function RiderDashboard() {
                             {riderOrders.length} order{riderOrders.length !== 1 ? 's' : ''} available for pickup
                         </Text>
                     </View>
-                    {/* Rider badge */}
                     <View style={{
                         backgroundColor: '#FFF7ED', paddingHorizontal: 12, paddingVertical: 6,
                         borderRadius: 99, borderWidth: 1, borderColor: '#FED7AA',
@@ -86,7 +99,11 @@ export default function RiderDashboard() {
             {/* Active delivery banner */}
             {activeDelivery && (
                 <View style={{
-                    marginHorizontal: 16, marginTop: 12,
+                    marginHorizontal: isWeb ? 32 : 16,
+                    marginTop: 12,
+                    maxWidth: isWeb ? 900 : undefined,
+                    alignSelf: isWeb ? 'center' : undefined,
+                    width: isWeb ? '100%' : undefined,
                     backgroundColor: '#FFF7ED', borderRadius: 16,
                     padding: 14, borderWidth: 1, borderColor: '#FED7AA',
                     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -129,7 +146,14 @@ export default function RiderDashboard() {
                 <FlatList
                     data={riderOrders}
                     keyExtractor={o => o.id}
-                    contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 140 }}
+                    contentContainerStyle={{
+                        paddingHorizontal: isWeb ? 32 : 16,
+                        paddingTop: 14,
+                        paddingBottom: isWeb ? 40 : 140,
+                        maxWidth: isWeb ? 900 : undefined,
+                        width: isWeb ? '100%' : undefined,
+                        alignSelf: isWeb ? 'center' : undefined,
+                    }}
                     showsVerticalScrollIndicator={false}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#FE8C00" />}
                     renderItem={({ item: order }) => (
@@ -138,7 +162,6 @@ export default function RiderDashboard() {
                             marginBottom: 12, borderWidth: 1, borderColor: '#F3F4F6',
                             shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
                         }}>
-                            {/* Top row */}
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                                 <View>
                                     <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#9CA3AF' }}>
@@ -148,7 +171,6 @@ export default function RiderDashboard() {
                                         {order.customerName}
                                     </Text>
                                 </View>
-                                {/* Status badge */}
                                 <View style={{
                                     flexDirection: 'row', alignItems: 'center', gap: 5,
                                     backgroundColor: order.status === 'Ready' ? '#ECFDF5' : '#FFF7ED',
@@ -166,7 +188,6 @@ export default function RiderDashboard() {
                                 </View>
                             </View>
 
-                            {/* Address */}
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
                                 <Image source={images.location} style={{ width: 14, height: 14 }} resizeMode="contain" tintColor="#FE8C00" />
                                 <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Medium', color: '#6B7280', flex: 1 }} numberOfLines={1}>
@@ -174,7 +195,6 @@ export default function RiderDashboard() {
                                 </Text>
                             </View>
 
-                            {/* Items */}
                             <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 10, marginBottom: 12 }}>
                                 {order.items.slice(0, 3).map((it, idx) => (
                                     <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: idx < Math.min(order.items.length, 3) - 1 ? 4 : 0 }}>
@@ -191,7 +211,6 @@ export default function RiderDashboard() {
                                 )}
                             </View>
 
-                            {/* Total + Accept button */}
                             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>
                                     KES {order.totalPrice.toLocaleString()}
