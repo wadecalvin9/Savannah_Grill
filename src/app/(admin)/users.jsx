@@ -71,7 +71,7 @@ export default function ManageUsers() {
                 backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
             }}>
                 <TouchableOpacity
-                    onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/(admin)/dashboard')}
                     style={{
                         width: 36, height: 36, borderRadius: 18,
                         backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center',

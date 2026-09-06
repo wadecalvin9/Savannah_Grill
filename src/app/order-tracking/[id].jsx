@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
     Animated,
     Image,
@@ -31,7 +31,7 @@ export default function OrderTracking() {
     const { id } = useLocalSearchParams()
     const { myOrders, orders } = useGlobalContext()
     const order = [...myOrders, ...orders].find(o => o.id === id || o.$id === id)
-    const pulseAnim = useRef(new Animated.Value(1)).current
+    const [pulseAnim] = useState(() => new Animated.Value(1))
 
     useEffect(() => {
         const pulse = Animated.loop(
@@ -160,7 +160,7 @@ export default function OrderTracking() {
                     </View>
                 )}
 
-                {order.riderName && !isCancelled && (
+                {!!order.riderName && !isCancelled && (
                     <View style={{
                         marginHorizontal: 20, backgroundColor: '#FFF7ED', borderRadius: 20, padding: 16, marginBottom: 16,
                         borderWidth: 1, borderColor: '#FED7AA', flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -175,7 +175,7 @@ export default function OrderTracking() {
                     </View>
                 )}
 
-                {!isCancelled && (order.status === 'Out for Delivery' || order.riderName) && (
+                {!isCancelled && (order.status === 'Out for Delivery' || !!order.riderName) && (
                     <View style={{ marginHorizontal: 20, marginBottom: 16 }}>
                         <Text style={{ fontSize: 14, fontFamily: 'QuickSand-Bold', color: '#1C1C2E', marginBottom: 10 }}>Live GPS Map Tracking</Text>
                         <RiderMapView

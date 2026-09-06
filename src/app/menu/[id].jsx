@@ -10,7 +10,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
-import { getMenuItem, submitRating } from '../../../lib/appwrite'
+import { getMenuItem, submitRating, getMenu } from '../../../lib/appwrite'
+import { getDishPairings } from '../../../lib/gemini'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
 const SectionTitle = ({ title }) => (
@@ -83,6 +84,7 @@ export default function MenuDetail() {
     const [isLoading, setIsLoading] = useState(true)
     const [qty, setQty] = useState(1)
     const [showToast, setShowToast] = useState(false)
+    const [pairings, setPairings] = useState([])
 
     useEffect(() => {
         const load = async () => {
@@ -98,6 +100,31 @@ export default function MenuDetail() {
         }
         load()
     }, [id])
+
+    useEffect(() => {
+        if (!item) return
+        let isMounted = true
+
+        const loadPairings = async () => {
+            try {
+                if (Array.isArray(item.recommendations) && item.recommendations.length > 0) {
+                    setPairings(item.recommendations)
+                    return
+                }
+
+                const allMenu = await getMenu()
+                const recs = await getDishPairings({ currentItem: item, allMenuItems: allMenu, limit: 4 })
+                if (isMounted && recs?.length > 0) {
+                    setPairings(recs)
+                }
+            } catch (err) {
+                console.warn('Pairings fetch warning:', err?.message)
+            }
+        }
+
+        loadPairings()
+        return () => { isMounted = false }
+    }, [item?.$id])
 
     const [toastMessage, setToastMessage] = useState('')
 
@@ -150,7 +177,7 @@ export default function MenuDetail() {
         )
     }
 
-    const recommendations = item.recommendations ?? []
+    const recommendations = pairings.length > 0 ? pairings : (item.recommendations ?? [])
     const totalPrice = (item.price ?? 0) * qty
 
     return (
@@ -229,7 +256,7 @@ export default function MenuDetail() {
                                 {item.name}
                             </Text>
 
-                            {item.categories?.name && (
+                            {!!item.categories?.name && (
                                 <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Medium', color: '#9CA3AF', marginTop: 3 }}>
                                     {item.categories.name}
                                 </Text>
@@ -321,7 +348,7 @@ export default function MenuDetail() {
                 {recommendations.length > 0 && (
                     <View style={{ marginBottom: 20 }}>
                         <View style={{ paddingHorizontal: 20 }}>
-                            <SectionTitle title="You might also like" />
+                            <SectionTitle title="Chef's Pairings" />
                         </View>
                         <ScrollView
                             horizontal

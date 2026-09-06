@@ -29,7 +29,17 @@ function RootLayoutInner() {
 
   if (!fontsLoaded && !error) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(staff)" />
+      <Stack.Screen name="(rider)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {

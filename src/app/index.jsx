@@ -23,7 +23,7 @@ export default function Index() {
   const role = user.role || "customer";
 
   if (role === "admin") {
-    return <Redirect href="/admin" />;
+    return <Redirect href="/(admin)/dashboard" />;
   }
 
   if (role === "rider") {

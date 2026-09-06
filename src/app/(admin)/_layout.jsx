@@ -1,6 +1,7 @@
 import { Stack, Redirect, usePathname, useRouter } from 'expo-router'
 import { useGlobalContext } from '../../context/GlobalProvider'
 import { View, Text, TouchableOpacity, Platform, Image, ScrollView } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
 import { signOut } from '../../../lib/appwrite'
 
@@ -118,7 +119,7 @@ function AdminMobileHeader() {
   }
 
   return (
-    <View style={{
+    <SafeAreaView edges={['top']} style={{
       backgroundColor: '#FFFFFF',
       borderBottomWidth: 1,
       borderBottomColor: '#E5E7EB',
@@ -144,7 +145,7 @@ function AdminMobileHeader() {
           Sign Out
         </Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   )
 }
 

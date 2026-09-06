@@ -1,4 +1,4 @@
-import { Slot } from 'expo-router'
+import { Slot, Redirect } from 'expo-router'
 import {
   Dimensions,
   Image,
@@ -9,10 +9,16 @@ import {
   View,
 } from 'react-native'
 import { images } from '../../../constants/index'
+import { useGlobalContext } from '../../context/GlobalProvider'
 
 export default function AuthLayout() {
   const isWeb = Platform.OS === 'web'
   const screenHeight = Dimensions.get('window').height
+  const { isLoggedIn, isLoading } = useGlobalContext()
+
+  if (!isLoading && isLoggedIn) {
+    return <Redirect href="/" />
+  }
 
   // ===== WEB VERSION (Frosted Card) =====
     if (isWeb) {

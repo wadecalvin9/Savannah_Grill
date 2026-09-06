@@ -18,6 +18,7 @@ import { getCategories, getMenu } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 import LocationModal from '../../../components/LocationModal'
 import WebFooter from '../../../components/WebFooter'
+import CuratedForYou from '../../../components/CuratedForYou'
 
 export default function Index() {
     const { user, deliveryLocation } = useGlobalContext()
@@ -189,6 +190,9 @@ export default function Index() {
                                 }}
                             />
                         </View>
+
+                        {/* ── CURATED FOR YOU ── */}
+                        <CuratedForYou menuItems={menuItems} />
 
                         {/* ── CATEGORY FILTERS ── */}
                         {categories.length > 0 && (

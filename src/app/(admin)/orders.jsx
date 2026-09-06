@@ -50,7 +50,7 @@ export default function ManageOrders() {
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                        onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(admin)/dashboard')}
                         style={{
                             width: 36,
                             height: 36,

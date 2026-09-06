@@ -84,7 +84,7 @@ export default function ManageProducts() {
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <TouchableOpacity
-                        onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(admin)/dashboard')}
                         style={{
                             width: 36,
                             height: 36,
@@ -105,7 +105,7 @@ export default function ManageProducts() {
                 </View>
 
                 <TouchableOpacity
-                    onPress={() => router.push('/admin/add-product')}
+                    onPress={() => router.push('/(admin)/add-product')}
                     style={{
                         backgroundColor: '#FE8C00',
                         width: 36,
@@ -193,7 +193,7 @@ export default function ManageProducts() {
                                 <Text numberOfLines={1} style={{ fontSize: 15, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
                                     {p.name}
                                 </Text>
-                                {p.categories?.name && (
+                                {!!p.categories?.name && (
                                     <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Medium', color: '#9CA3AF', marginTop: 1 }}>
                                         {p.categories.name}
                                     </Text>
@@ -221,7 +221,7 @@ export default function ManageProducts() {
 
                                 {/* Edit Button */}
                                 <TouchableOpacity
-                                    onPress={() => router.push({ pathname: '/admin/edit-product', params: { id: p.$id } })}
+                                    onPress={() => router.push({ pathname: '/(admin)/edit-product', params: { id: p.$id } })}
                                     style={{
                                         width: 34,
                                         height: 34,

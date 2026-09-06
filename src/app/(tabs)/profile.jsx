@@ -16,6 +16,8 @@ const MenuListItem = ({ icon, title, subtitle, onPress, isLast = false, titleCol
       paddingHorizontal: 16,
       borderBottomWidth: isLast ? 0 : 1,
       borderBottomColor: '#F3F4F6',
+      borderBottomLeftRadius: isLast ? 20 : 0,
+      borderBottomRightRadius: isLast ? 20 : 0,
     }}
   >
     <View style={{
@@ -187,6 +189,10 @@ export default function Profile() {
           alignItems: 'center',
           borderWidth: 1,
           borderColor: '#E5E7EB',
+          shadowColor: '#000',
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          elevation: 2,
         }}>
           <Image
             source={user?.profile ? { uri: user.profile } : images.avatar}
@@ -211,7 +217,10 @@ export default function Profile() {
           borderRadius: 20,
           borderWidth: 1,
           borderColor: '#E5E7EB',
-          overflow: 'hidden',
+          shadowColor: '#000',
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          elevation: 2,
         }}>
           <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
             <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -231,7 +240,10 @@ export default function Profile() {
           borderRadius: 20,
           borderWidth: 1,
           borderColor: '#E5E7EB',
-          overflow: 'hidden',
+          shadowColor: '#000',
+          shadowOpacity: 0.03,
+          shadowRadius: 8,
+          elevation: 2,
         }}>
           <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
             <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -256,7 +268,7 @@ export default function Profile() {
               icon={images.pencil}
               title="Admin Panel"
               subtitle="Manage products, orders & catalog"
-              onPress={() => router.push('/admin')}
+              onPress={() => router.push('/(admin)/dashboard')}
               isLast
             />
           ) : (

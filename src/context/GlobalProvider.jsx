@@ -102,6 +102,7 @@ const GlobalProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchUser();
     }, []);
 
@@ -182,6 +183,7 @@ const GlobalProvider = ({ children }) => {
     useEffect(() => {
         if (!user) {
             // User signed out or is a guest → clear personal data
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setMyOrders([]);
             setOrders([]);
             setRiderOrders([]);
@@ -221,6 +223,7 @@ const GlobalProvider = ({ children }) => {
                 pollRef.current = null;
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
 

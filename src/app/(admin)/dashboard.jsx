@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                         <Text style={{ fontSize: 16, fontFamily: 'QuickSand-Bold', color: '#1C1C2E' }}>
                             Recent Orders
                         </Text>
-                        <TouchableOpacity onPress={() => router.push('/admin/orders')}>
+                        <TouchableOpacity onPress={() => router.push('/(admin)/orders')}>
                             <Text style={{ fontSize: 13, fontFamily: 'QuickSand-Bold', color: '#FE8C00' }}>
                                 View All ({orders.length})
                             </Text>
