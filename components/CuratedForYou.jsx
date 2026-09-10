@@ -1,7 +1,6 @@
 import { router } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useMemo } from 'react'
 import {
-    ActivityIndicator,
     Image,
     Platform,
     ScrollView,
@@ -10,49 +9,28 @@ import {
     View,
 } from 'react-native'
 import { images } from '../constants'
-import { getPersonalizedRecommendations } from '../lib/gemini'
+import { getPersonalizedRecommendationsSync } from '../lib/recommendations'
 import { useGlobalContext } from '../src/context/GlobalProvider'
 
 export default function CuratedForYou({ menuItems = [] }) {
     const { myOrders, addToCart, showToast } = useGlobalContext()
-    const [curatedList, setCuratedList] = useState([])
-    const [loading, setLoading] = useState(false)
 
-    const hasPastOrders = (myOrders || []).some(
-        (order) => Array.isArray(order.items) && order.items.length > 0
-    )
+    const hasPastOrders = useMemo(() => (
+        (myOrders || []).some(
+            (order) => Array.isArray(order.items) && order.items.length > 0
+        )
+    ), [myOrders])
 
-    useEffect(() => {
-        let isMounted = true
+    const curatedList = useMemo(() => {
+        if (!menuItems || menuItems.length === 0) return []
+        return getPersonalizedRecommendationsSync({
+            myOrders,
+            allMenuItems: menuItems,
+            limit: 4,
+        })
+    }, [menuItems, myOrders])
 
-        const fetchRecommendations = async () => {
-            if (!menuItems || menuItems.length === 0) return
-
-            setLoading(true)
-            try {
-                const recs = await getPersonalizedRecommendations({
-                    myOrders,
-                    allMenuItems: menuItems,
-                    limit: 4,
-                })
-                if (isMounted) {
-                    setCuratedList(recs || [])
-                }
-            } catch (err) {
-                console.warn('CuratedForYou fetch error:', err?.message)
-            } finally {
-                if (isMounted) setLoading(false)
-            }
-        }
-
-        fetchRecommendations()
-
-        return () => {
-            isMounted = false
-        }
-    }, [menuItems, myOrders?.length])
-
-    if (!loading && curatedList.length === 0) {
+    if (curatedList.length === 0) {
         return null
     }
 
@@ -87,38 +65,15 @@ export default function CuratedForYou({ menuItems = [] }) {
             </View>
 
             {/* ── CAROUSEL ── */}
-            {loading && curatedList.length === 0 ? (
-                <View
-                    style={{
-                        paddingHorizontal: 20,
-                        paddingVertical: 24,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 10,
-                    }}
-                >
-                    <ActivityIndicator size="small" color="#FE8C00" />
-                    <Text
-                        style={{
-                            fontSize: 13,
-                            fontFamily: 'QuickSand-Medium',
-                            color: '#9CA3AF',
-                        }}
-                    >
-                        Pairing selections...
-                    </Text>
-                </View>
-            ) : (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{
-                        paddingHorizontal: 16,
-                        gap: 14,
-                        paddingBottom: 6,
-                    }}
-                >
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    gap: 14,
+                    paddingBottom: 6,
+                }}
+            >
                     {curatedList.map((item) => (
                         <TouchableOpacity
                             key={item.$id}
@@ -268,7 +223,6 @@ export default function CuratedForYou({ menuItems = [] }) {
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
-            )}
         </View>
     )
 }

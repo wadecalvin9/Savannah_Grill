@@ -1,4 +1,5 @@
 import { router } from 'expo-router'
+import React, { memo } from 'react'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 import { images } from '../constants'
 import { useGlobalContext } from '../src/context/GlobalProvider'
@@ -97,6 +98,7 @@ const MenuCard = ({ item }) => {
                     textAlign: 'center',
                     lineHeight: 16,
                     marginTop: 4,
+                    minHeight: 32,
                 }}
             >
                 {item.description}
@@ -129,4 +131,4 @@ const MenuCard = ({ item }) => {
     )
 }
 
-export default MenuCard
+export default memo(MenuCard)
