@@ -217,7 +217,7 @@ export default function ManageOrders() {
                                     </Text>
                                 </View>
 
-                                {/* Quick Action Buttons */}
+                                {/* Quick Action Buttons – current status is always hidden; admin can override anything */}
                                 <Text style={{ fontSize: 11, fontFamily: 'QuickSand-Bold', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
                                     Update Status:
                                 </Text>
@@ -242,7 +242,7 @@ export default function ManageOrders() {
                                         </TouchableOpacity>
                                     )}
 
-                                    {order.status !== 'Out for Delivery' && order.status !== 'Completed' && order.status !== 'Cancelled' && (
+                                    {order.status !== 'Out for Delivery' && (
                                         <TouchableOpacity
                                             onPress={() => updateOrderStatus(order.id, 'Out for Delivery')}
                                             style={{ backgroundColor: '#FFF7ED', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1, borderColor: '#FED7AA', flexDirection: 'row', alignItems: 'center', gap: 6 }}

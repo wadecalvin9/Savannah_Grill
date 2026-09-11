@@ -15,6 +15,7 @@ import { getUsers, updateUserRole } from '../../../lib/appwrite'
 
 const ROLE_STYLES = {
     admin:    { bg: '#FFF7ED', text: '#F97316', label: 'Admin', icon: images.pencil, iconColor: '#F97316' },
+    staff:    { bg: '#F0FDF4', text: '#16A34A', label: 'Staff', icon: images.bag, iconColor: '#16A34A' },
     rider:    { bg: '#FFF7ED', text: '#FE8C00', label: 'Rider', icon: images.location, iconColor: '#FE8C00' },
     customer: { bg: '#EFF6FF', text: '#3B82F6', label: 'Customer', icon: images.person, iconColor: '#3B82F6' },
 }
@@ -29,14 +30,31 @@ export default function ManageUsers() {
         try {
             const result = await getUsers()
             setUsers(result || [])
-        } catch (e) {
+        } catch (_e) {
             Alert.alert('Error', 'Could not load users.')
         } finally {
             setLoading(false)
         }
     }
 
-    useEffect(() => { loadUsers() }, [])
+    useEffect(() => {
+        let cancelled = false
+
+        const load = async () => {
+            setLoading(true)
+            try {
+                const result = await getUsers()
+                if (!cancelled) setUsers(result || [])
+            } catch (_e) {
+                if (!cancelled) Alert.alert('Error', 'Could not load users.')
+            } finally {
+                if (!cancelled) setLoading(false)
+            }
+        }
+
+        load()
+        return () => { cancelled = true }
+    }, [])
 
     const handleUpdateRole = async (userId, currentRole, newRole) => {
         Alert.alert(
@@ -51,7 +69,7 @@ export default function ManageUsers() {
                         try {
                             await updateUserRole(userId, newRole)
                             setUsers(prev => prev.map(u => u.$id === userId ? { ...u, role: newRole } : u))
-                        } catch (e) {
+                        } catch (_e) {
                             Alert.alert('Error', 'Could not update role. Make sure the "role" attribute exists in your Appwrite user collection.')
                         } finally {
                             setUpdatingId(null)
@@ -153,12 +171,30 @@ export default function ManageUsers() {
                                 {isUpdating ? (
                                     <ActivityIndicator size="small" color="#FE8C00" />
                                 ) : (
-                                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                        {role !== 'staff' && (
+                                            <TouchableOpacity
+                                                onPress={() => handleUpdateRole(u.$id, role, 'staff')}
+                                                style={{
+                                                    flex: 1, minWidth: '45%',
+                                                    backgroundColor: '#F0FDF4', borderRadius: 10,
+                                                    paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
+                                                    borderWidth: 1, borderColor: '#BBF7D0',
+                                                    flexDirection: 'row', gap: 6,
+                                                }}
+                                            >
+                                                <Image source={images.bag} style={{ width: 12, height: 12 }} resizeMode="contain" tintColor="#16A34A" />
+                                                <Text style={{ fontSize: 12, fontFamily: 'QuickSand-Bold', color: '#16A34A' }}>
+                                                    Make Staff
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
                                         {role !== 'rider' && (
                                             <TouchableOpacity
                                                 onPress={() => handleUpdateRole(u.$id, role, 'rider')}
                                                 style={{
-                                                    flex: 1, backgroundColor: '#FFF7ED', borderRadius: 10,
+                                                    flex: 1, minWidth: '45%',
+                                                    backgroundColor: '#FFF7ED', borderRadius: 10,
                                                     paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
                                                     borderWidth: 1, borderColor: '#FED7AA',
                                                     flexDirection: 'row', gap: 6,
@@ -174,7 +210,8 @@ export default function ManageUsers() {
                                             <TouchableOpacity
                                                 onPress={() => handleUpdateRole(u.$id, role, 'customer')}
                                                 style={{
-                                                    flex: 1, backgroundColor: '#EFF6FF', borderRadius: 10,
+                                                    flex: 1, minWidth: '45%',
+                                                    backgroundColor: '#EFF6FF', borderRadius: 10,
                                                     paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
                                                     borderWidth: 1, borderColor: '#BFDBFE',
                                                     flexDirection: 'row', gap: 6,
@@ -190,7 +227,8 @@ export default function ManageUsers() {
                                             <TouchableOpacity
                                                 onPress={() => handleUpdateRole(u.$id, role, 'admin')}
                                                 style={{
-                                                    flex: 1, backgroundColor: '#FFF7ED', borderRadius: 10,
+                                                    flex: 1, minWidth: '45%',
+                                                    backgroundColor: '#FFF7ED', borderRadius: 10,
                                                     paddingVertical: 9, alignItems: 'center', justifyContent: 'center',
                                                     borderWidth: 1, borderColor: '#FED7AA',
                                                     flexDirection: 'row', gap: 6,
