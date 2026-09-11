@@ -1,6 +1,6 @@
 # Savannah Grill 🥩🍔
 
-Savannah Grill is a full-featured, cross-platform (iOS, Android, and Web) food ordering and delivery application built with **Expo (SDK 57)**, **React Native**, **Expo Router**, **NativeWind v4 (Tailwind CSS)**, and **Appwrite Cloud Backend**.
+Savannah Grill is a full-featured, cross-platform (iOS, Android, and Web) food ordering and delivery application built with **Expo (SDK 56)**, **React Native**, **Expo Router**, **NativeWind v4 (Tailwind CSS)**, and **Appwrite Cloud Backend**.
 
 The platform features role-based access control supporting **Customers**, **Kitchen Staff**, **Riders**, and **Administrators** with real-time order tracking, live status updates, menu customization, and dynamic management interfaces.
 
