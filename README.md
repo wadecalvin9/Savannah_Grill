@@ -65,8 +65,8 @@ The platform features role-based access control supporting **Customers**, **Kitc
 
 | Category | Technology |
 |---|---|
-| **Framework** | [Expo (SDK 57)](https://expo.dev) / React Native 0.86 |
-| **Routing** | [Expo Router v57](https://docs.expo.dev/router/introduction/) (File-based routing) |
+| **Framework** | [Expo (SDK 56)](https://expo.dev) / React Native 0.86 |
+| **Routing** | [Expo Router v56](https://docs.expo.dev/router/introduction/) (File-based routing) |
 | **Styling** | [NativeWind v4](https://www.nativewind.dev/) / Tailwind CSS 3.4 |
 | **Backend & Auth** | [Appwrite Cloud](https://appwrite.io/) (Auth, Databases, Storage Buckets, Avatars) |
 | **State Management** | React Context (`GlobalProvider`) with 12s polling interval for multi-role sync |
