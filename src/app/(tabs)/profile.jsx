@@ -2,7 +2,6 @@ import { router } from 'expo-router'
 import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
-import { signOut } from '../../../lib/appwrite'
 import { useGlobalContext } from '../../context/GlobalProvider'
 
 const MenuListItem = ({ icon, title, subtitle, onPress, isLast = false, titleColor = '#1C1C2E' }) => (
@@ -55,9 +54,9 @@ const MenuListItem = ({ icon, title, subtitle, onPress, isLast = false, titleCol
 )
 
 export default function Profile() {
-  const { user, isLoggedIn, setIsLoggedIn, setUser, setUserRole, userRole } = useGlobalContext()
+  const { user, isLoggedIn, userRole, logout } = useGlobalContext()
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -67,15 +66,8 @@ export default function Profile() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await signOut()
-              setUser(null)
-              setIsLoggedIn(false)
-              setUserRole('customer')
-              router.replace('/')          // back to home as guest
-            } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to sign out')
-            }
+            await logout()
+            router.replace('/')
           }
         }
       ]
@@ -122,7 +114,7 @@ export default function Profile() {
             color: '#1C1C2E',
             textAlign: 'center',
           }}>
-            You're browsing as a guest
+            {"You're browsing as a guest"}
           </Text>
 
           <Text style={{
