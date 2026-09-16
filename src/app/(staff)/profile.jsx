@@ -3,15 +3,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { signOut } from '../../../lib/appwrite';
 
 const isWeb = Platform.OS === 'web';
 
 export default function StaffProfile() {
-  const { user, setUser, setIsLoggedIn, setUserRole } = useGlobalContext();
+  const { user, logout } = useGlobalContext();
   const router = useRouter();
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out?',
@@ -21,15 +20,8 @@ export default function StaffProfile() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await signOut();
-              setUser(null);
-              if (typeof setIsLoggedIn === 'function') setIsLoggedIn(false);
-              if (typeof setUserRole === 'function') setUserRole('customer');
-              router.replace('/');
-            } catch (e) {
-              Alert.alert('Error', 'Could not sign out');
-            }
+            await logout();
+            router.replace('/');
           },
         },
       ]

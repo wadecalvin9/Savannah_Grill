@@ -403,6 +403,28 @@ const GlobalProvider = ({ children }) => {
         }
     }
 
+    // ── Logout (clears state BEFORE deleting the session) ──
+    const logout = async () => {
+        // 1. Clear local state first so polling stops immediately
+        setUser(null)
+        setIsLoggedIn(false)
+        setUserRole('customer')
+        setMyOrders([])
+        setOrders([])
+        setRiderOrders([])
+        setRiderHistory([])
+        setActiveDelivery(null)
+        setPendingConfirmations([])
+        setCartItems([])
+
+        // 2. Then delete the Appwrite session
+        try {
+            await signOut()
+        } catch (_) {
+            // ignore – local state is already cleared
+        }
+    }
+
     return (
         <GlobalContext.Provider
             value={{
@@ -439,6 +461,7 @@ const GlobalProvider = ({ children }) => {
                 prepareDeliveryCode,
                 verifyAndCompleteDelivery,
                 pendingConfirmations,
+                logout,
             }}
         >
             {children}

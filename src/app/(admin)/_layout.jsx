@@ -3,7 +3,7 @@ import { useGlobalContext } from '../../context/GlobalProvider'
 import { View, Text, TouchableOpacity, Platform, Image, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
-import { signOut } from '../../../lib/appwrite'
+
 
 const isWeb = Platform.OS === 'web'
 
@@ -17,17 +17,12 @@ const NAV_ITEMS = [
 function AdminSideNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const { setUser, setIsLoggedIn, setUserRole } = useGlobalContext()
+  const { logout } = useGlobalContext()
 
   const isActive = (match) => pathname?.includes(match)
 
   const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (e) {}
-    setUser(null)
-    setIsLoggedIn(false)
-    setUserRole('customer')
+    await logout()
     router.replace('/')
   }
 
@@ -106,15 +101,10 @@ function AdminSideNav() {
 
 function AdminMobileHeader() {
   const router = useRouter()
-  const { setUser, setIsLoggedIn, setUserRole } = useGlobalContext()
+  const { logout } = useGlobalContext()
 
   const handleSignOut = async () => {
-    try {
-      await signOut()
-    } catch (e) {}
-    setUser(null)
-    setIsLoggedIn(false)
-    setUserRole('customer')
+    await logout()
     router.replace('/')
   }
 

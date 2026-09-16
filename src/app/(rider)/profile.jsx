@@ -1,18 +1,18 @@
 import { Alert, Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { images } from '../../../constants'
-import { signOut } from '../../../lib/appwrite'
+
 import { useGlobalContext } from '../../context/GlobalProvider'
 import { router } from 'expo-router'
 
 const isWeb = Platform.OS === 'web'
 
 export default function RiderProfile() {
-    const { user, setIsLoggedIn, setUser, setUserRole, riderHistory } = useGlobalContext()
+    const { user, logout, riderHistory } = useGlobalContext()
 
     const completed = riderHistory.filter(o => o.status === 'Completed')
 
-    const handleSignOut = async () => {
+    const handleSignOut = () => {
         Alert.alert(
             'Sign Out',
             'Are you sure you want to sign out?',
@@ -22,15 +22,8 @@ export default function RiderProfile() {
                     text: 'Sign Out',
                     style: 'destructive',
                     onPress: async () => {
-                        try {
-                            await signOut()
-                            setUser(null)
-                            setIsLoggedIn(false)
-                            setUserRole('customer')
-                            router.replace('/sign-in')
-                        } catch (error) {
-                            Alert.alert('Error', error.message || 'Failed to sign out')
-                        }
+                        await logout()
+                        router.replace('/')
                     }
                 }
             ]
